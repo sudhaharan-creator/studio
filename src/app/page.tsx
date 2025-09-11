@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SheetIcon, GitBranchIcon } from 'lucide-react';
+import { GitBranchIcon } from 'lucide-react';
 import { getSheetData, GetSheetDataOutput } from '@/ai/flows/get-sheet-data';
 import { useToast } from '@/hooks/use-toast';
 import { useAppContext } from '@/context/app-context';
@@ -54,13 +54,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-body flex items-center justify-center">
+    <div className="min-h-screen bg-background text-foreground font-body flex items-center justify-center -mt-16">
       <main className="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
-        <header className="flex items-center gap-3 mb-8 justify-center">
-          <SheetIcon className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200">SheetSync</h1>
-        </header>
-
         <Card className="shadow-lg border-none">
           <CardHeader>
             <CardTitle className="font-headline">Connect your Google Sheet</CardTitle>
