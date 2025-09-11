@@ -11,12 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, User as UserIcon, Settings, BookOpen, Palette, CheckIcon, KeyRound } from 'lucide-react';
+import { Loader2, User as UserIcon, Settings, BookOpen, Palette, CheckIcon, KeyRound, XIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useAppContext } from '@/context/app-context';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const colorPalettes = [
   {
@@ -60,6 +62,7 @@ const colorPalettes = [
 
 export default function ProfilePage() {
   const { user, loading: authLoading, setUser } = useAuth();
+  const { sheetData } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -74,6 +77,26 @@ export default function ProfilePage() {
     accent: '',
   });
   const [isSubmittingTheme, setIsSubmittingTheme] = useState(false);
+  
+  const [isEditingCourses, setIsEditingCourses] = useState(false);
+  const [tempSelectedCourses, setTempSelectedCourses] = useState<string[]>([]);
+  const [uniqueCourses, setUniqueCourses] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (sheetData) {
+      const courses = new Set<string>();
+      sheetData.slice(2).forEach(row => {
+        row.slice(2).forEach(cell => {
+          const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
+          if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && isNaN(parseInt(courseName))) {
+            courses.add(courseName);
+          }
+        });
+      });
+      setUniqueCourses(Array.from(courses).sort());
+    }
+  }, [sheetData]);
+
 
   const fetchPreferences = useCallback(async () => {
     if (!user) return;
@@ -83,7 +106,9 @@ export default function ProfilePage() {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      setUserCourses(data.courses || []);
+      const savedCourses = data.courses || [];
+      setUserCourses(savedCourses);
+      setTempSelectedCourses(savedCourses);
       setThemeColors({
         primary: data.theme?.primary || '',
         background: data.theme?.background || '',
@@ -162,6 +187,41 @@ export default function ProfilePage() {
     }
   };
 
+  const handleCourseSelection = (course: string, checked: boolean) => {
+    setTempSelectedCourses(prev =>
+      checked
+        ? [...prev, course]
+        : prev.filter(c => c !== course)
+    );
+  };
+  
+  const handleEditCourses = () => {
+    setTempSelectedCourses(userCourses);
+    setIsEditingCourses(true);
+  };
+  
+  const handleCancelEdit = () => {
+    setTempSelectedCourses(userCourses);
+    setIsEditingCourses(false);
+  };
+
+  const handleSaveCourses = async () => {
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+      const docRef = doc(db, 'userPreferences', user.uid);
+      await setDoc(docRef, { courses: tempSelectedCourses }, { merge: true });
+      setUserCourses(tempSelectedCourses);
+      setIsEditingCourses(false);
+      toast({ title: 'Success', description: 'Your course preferences have been updated.' });
+    } catch (error) {
+       toast({ variant: 'destructive', title: 'Error', description: 'Failed to save courses.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
   if (isLoading || authLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground font-body">
@@ -225,19 +285,64 @@ export default function ProfilePage() {
               </TabsContent>
               <TabsContent value="my-courses" className="mt-6">
                  <Card>
-                  <CardHeader>
-                    <CardTitle>My Courses</CardTitle>
-                    <CardDescription>Here are the courses you have selected.</CardDescription>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>My Courses</CardTitle>
+                      <CardDescription>
+                        {isEditingCourses 
+                          ? 'Select your default courses to display on the timetable.'
+                          : 'Here are your saved courses. Click Edit to make changes.'}
+                      </CardDescription>
+                    </div>
+                     {!isEditingCourses && (
+                      <Button variant="outline" onClick={handleEditCourses}>Edit Courses</Button>
+                    )}
                   </CardHeader>
                   <CardContent>
-                    {userCourses.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {userCourses.map(course => (
-                          <Badge key={course} variant="secondary">{course}</Badge>
-                        ))}
+                    {isEditingCourses ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                          {uniqueCourses.map(course => (
+                            <div key={course} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`profile-${course}`}
+                                checked={tempSelectedCourses.includes(course)}
+                                onCheckedChange={(checked) => handleCourseSelection(course, !!checked)}
+                              />
+                              <Label htmlFor={`profile-${course}`} className="cursor-pointer">{course}</Label>
+                            </div>
+                          ))}
+                        </div>
+                        {tempSelectedCourses.length > 0 && (
+                          <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
+                            <span className="text-sm font-medium text-muted-foreground">Selected:</span>
+                            {tempSelectedCourses.map(course => (
+                              <Badge key={course} variant="secondary" className="flex items-center gap-2">
+                                {course}
+                                <button onClick={() => handleCourseSelection(course, false)} className="appearance-none border-none bg-transparent p-0">
+                                  <XIcon className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2 pt-4 border-t mt-4">
+                           <Button onClick={handleSaveCourses} disabled={isSubmitting}>
+                            {isSubmitting ? <Loader2 className="animate-spin" /> : 'Save Courses'}
+                           </Button>
+                           <Button variant="ghost" onClick={handleCancelEdit} disabled={isSubmitting}>Cancel</Button>
+                        </div>
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">You have not selected any courses yet.</p>
+                      userCourses.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {userCourses.map(course => (
+                            <Badge key={course} variant="secondary">{course}</Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">You have not selected any courses yet. Click "Edit" to add your courses.</p>
+                      )
                     )}
                   </CardContent>
                 </Card>
@@ -292,3 +397,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    
