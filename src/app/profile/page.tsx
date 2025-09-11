@@ -87,8 +87,8 @@ export default function ProfilePage() {
       const courses = new Set<string>();
       sheetData.slice(2).forEach(row => {
         row.slice(2).forEach(cell => {
-          const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
-          if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && isNaN(parseInt(courseName))) {
+          const courseName = cell.value.trim();
+          if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && !/^\s*$/.test(courseName)) {
             courses.add(courseName);
           }
         });
@@ -397,5 +397,4 @@ export default function ProfilePage() {
     </div>
   );
 }
-
     

@@ -34,8 +34,9 @@ export default function ViewPage() {
     const courses = new Set<string>();
     sheetData.slice(2).forEach(row => {
       row.slice(2).forEach(cell => {
-        const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
-        if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && isNaN(parseInt(courseName))) {
+        // Use the full cell value as the course identifier
+        const courseName = cell.value.trim();
+        if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && !/^\s*$/.test(courseName)) {
           courses.add(courseName);
         }
       });
@@ -91,7 +92,7 @@ export default function ViewPage() {
         const newFilteredData = bodyRows.map(row => {
             const newRow = row.slice(0, 2); // Keep Date and Classroom No.
             row.slice(2).forEach(cell => {
-                const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
+                const courseName = cell.value.trim();
                 if (selectedCourses.includes(courseName)) {
                     newRow.push(cell);
                 } else {

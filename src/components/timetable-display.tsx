@@ -47,35 +47,9 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
   const { toast } = useToast();
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus | undefined>>({});
 
-  const generateSessionId = (date: string, time: string, courseName: string) => {
-    return `${date}-${time}-${courseName}`.replace(/[^a-zA-Z0-9-]/g, '');
+  const generateSessionId = (date: string, time: string, courseName: string, sessionNumber: number) => {
+    return `${date}-${time}-${courseName}-${sessionNumber}`.replace(/[^a-zA-Z0-9-]/g, '');
   };
-
-  // Memoize the session number calculation
-  const courseSessionMap = useMemo(() => {
-    const map = new Map<string, number>();
-    const sessionNumbers = new Map<string, number>();
-
-    if (!data) return sessionNumbers;
-
-    data.slice(2).forEach((row, rowIndex) => {
-        row.slice(2).forEach((cell, cellIndex) => {
-            const courseName = cell.value.trim();
-            if (courseName && user) {
-                const date = row[0]?.value;
-                const time = data[1][cellIndex]?.value;
-                const sessionId = generateSessionId(date, time, courseName);
-                
-                const currentCount = map.get(courseName) || 0;
-                const newCount = currentCount + 1;
-                map.set(courseName, newCount);
-                sessionNumbers.set(sessionId, newCount);
-            }
-        });
-    });
-    return sessionNumbers;
-  }, [data, user]);
-
 
   const fetchAttendance = useCallback(async () => {
     if (!user || !data) return;
@@ -95,12 +69,11 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
     fetchAttendance();
   }, [data, fetchAttendance]);
 
-  const handleAttendance = async (sessionId: string, date: string, time: string, course: string, status: AttendanceStatus) => {
+  const handleAttendance = async (sessionId: string, date: string, time: string, course: string, sessionNumber: number, status: AttendanceStatus) => {
     if (!user) return;
 
     const docId = `${user.uid}_${sessionId}`;
     const currentStatus = attendance[sessionId];
-    const sessionNumber = courseSessionMap.get(sessionId) || 0;
 
     if (currentStatus === status) {
       try {
@@ -196,8 +169,28 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                     
                     if (user && cellIndex > 1 && cell.value.trim() !== '') {
                       const time = headerRows[1][cellIndex]?.value;
-                      const courseName = cell.value.trim();
-                      const sessionId = generateSessionId(date, time, courseName);
+                      const fullCourseText = cell.value.trim();
+                      const courseNameMatch = fullCourseText.match(/^([a-zA-Z\s]+)/);
+                      const sessionNumberMatch = fullCourseText.match(/(\d+)$/);
+                      
+                      const courseName = courseNameMatch ? courseNameMatch[1].trim() : fullCourseText;
+                      const sessionNumber = sessionNumberMatch ? parseInt(sessionNumberMatch[1], 10) : 0;
+                      
+                      if (!courseName || sessionNumber === 0) {
+                        return (
+                          <TableCell
+                            key={cellIndex}
+                            className={cn('text-center align-middle', className)}
+                            style={style}
+                            colSpan={colSpan}
+                            rowSpan={rowSpan}
+                          >
+                            {cell.value}
+                          </TableCell>
+                        );
+                      }
+
+                      const sessionId = generateSessionId(date, time, courseName, sessionNumber);
                       const currentStatus = attendance[sessionId];
 
                       return (
@@ -214,7 +207,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                               <Button
                                 size="sm"
                                 variant={currentStatus === 'present' ? 'default' : 'outline'}
-                                onClick={() => handleAttendance(sessionId, date, time, courseName, 'present')}
+                                onClick={() => handleAttendance(sessionId, date, time, courseName, sessionNumber, 'present')}
                                 className='h-6 px-2 text-xs'
                               >
                                 P
@@ -222,7 +215,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                               <Button
                                 size="sm"
                                 variant={currentStatus === 'absent' ? 'destructive' : 'outline'}
-                                onClick={() => handleAttendance(sessionId, date, time, courseName, 'absent')}
+                                onClick={() => handleAttendance(sessionId, date, time, courseName, sessionNumber, 'absent')}
                                 className='h-6 px-2 text-xs'
                               >
                                 A
