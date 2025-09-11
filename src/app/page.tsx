@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +25,7 @@ import {
 export default function Home() {
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
+  const [filteredSheetData, setFilteredSheetData] = useState<SheetData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
@@ -43,19 +44,21 @@ export default function Home() {
   useEffect(() => {
     if (sheetData) {
       const courses = new Set<string>();
-      // Courses are in the body of the table (from the 3rd row onwards)
-      // and in columns from the 3rd one onwards (index 2).
       sheetData.slice(2).forEach(row => {
         row.slice(2).forEach(cell => {
-          // Remove trailing numbers and trim whitespace
           const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
-          // Add to set if it's a valid course name
           if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && isNaN(parseInt(courseName))) {
             courses.add(courseName);
           }
         });
       });
       setUniqueCourses(Array.from(courses).sort());
+    }
+  }, [sheetData]);
+
+  useEffect(() => {
+    if (sheetData) {
+      setFilteredSheetData(sheetData);
     }
   }, [sheetData]);
 
@@ -68,6 +71,7 @@ export default function Home() {
         description: 'Please enter a valid Google Sheet URL.',
       });
       setSheetData(null);
+      setFilteredSheetData(null);
       return;
     }
     await fetchData();
@@ -76,6 +80,7 @@ export default function Home() {
   const fetchData = async () => {
     setIsLoading(true);
     setSheetData(null);
+    setFilteredSheetData(null);
     setSelectedCourses([]);
   
     let currentApiKey = apiKey;
@@ -142,10 +147,43 @@ export default function Home() {
         : prev.filter(c => c !== course)
     );
   };
+
+  const handleFilterClick = () => {
+    if (!sheetData) return;
+    if (selectedCourses.length === 0) {
+      setFilteredSheetData(sheetData);
+      return;
+    }
+
+    const headerRows = sheetData.slice(0, 2);
+    const bodyRows = sheetData.slice(2);
+
+    const newFilteredData = bodyRows.map(row => {
+      // Keep the first two cells (Day, Date and Classroom No.)
+      const newRow = row.slice(0, 2);
+      // Filter the rest of the cells
+      row.slice(2).forEach(cell => {
+        const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
+        if (selectedCourses.includes(courseName)) {
+          newRow.push(cell);
+        } else {
+          // Push an empty cell to maintain table structure
+          newRow.push({ value: '' });
+        }
+      });
+      return newRow;
+    });
+
+    setFilteredSheetData([...headerRows, ...newFilteredData]);
+  };
   
-  const clearSelection = () => {
+  const clearFilter = () => {
+    if (sheetData) {
+      setFilteredSheetData(sheetData);
+    }
     setSelectedCourses([]);
   };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground font-body">
@@ -188,11 +226,8 @@ export default function Home() {
               <div className="flex justify-between items-center">
                 <div>
                   <CardTitle className="font-headline">Filter Courses</CardTitle>
-                  <CardDescription>Select one or more courses to highlight them in the timetable.</CardDescription>
+                  <CardDescription>Select the courses you want to see and click filter.</CardDescription>
                 </div>
-                {selectedCourses.length > 0 && (
-                   <Button variant="ghost" onClick={clearSelection} className="text-sm">Clear Selection</Button>
-                 )}
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -207,6 +242,11 @@ export default function Home() {
                     <Label htmlFor={course} className="cursor-pointer">{course}</Label>
                   </div>
                 ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-4 border-t">
+                <Button onClick={handleFilterClick} disabled={selectedCourses.length === 0}>Filter Timetable</Button>
+                <Button onClick={clearFilter} variant="outline">Show All</Button>
               </div>
               
               {selectedCourses.length > 0 && (
@@ -228,7 +268,7 @@ export default function Home() {
 
         <div className="transition-opacity duration-500">
           {isLoading && <TimetableSkeleton />}
-          {sheetData && <TimetableDisplay data={sheetData} highlightedCourses={selectedCourses} />}
+          {filteredSheetData && <TimetableDisplay data={filteredSheetData} />}
         </div>
         
         <Dialog open={isApiModalOpen} onOpenChange={setIsApiModalOpen}>

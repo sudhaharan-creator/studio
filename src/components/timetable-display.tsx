@@ -13,17 +13,9 @@ interface TimetableDisplayProps {
 
 const getCellProps = (
   cell: { value: string; style?: CellStyle; colSpan?: number },
-  highlightedCourses?: string[]
+  isHighlighted?: boolean
 ) => {
   const style = cell.style || {};
-  let isHighlighted = false;
-
-  if (highlightedCourses && highlightedCourses.length > 0) {
-    const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
-    if (highlightedCourses.includes(courseName)) {
-      isHighlighted = true;
-    }
-  }
 
   const classNames: string[] = [];
   if (style?.bold) classNames.push('font-bold');
@@ -44,7 +36,7 @@ const getCellProps = (
   return { className: classNames.join(' '), style: inlineStyles, colSpan: cell.colSpan };
 };
 
-export function TimetableDisplay({ data, highlightedCourses }: TimetableDisplayProps) {
+export function TimetableDisplay({ data }: TimetableDisplayProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -92,7 +84,7 @@ export function TimetableDisplay({ data, highlightedCourses }: TimetableDisplayP
               {bodyRows.map((row, rowIndex) => (
                 <TableRow key={rowIndex} className="transition-colors">
                   {row.map((cell, cellIndex) => {
-                    const { className, style, colSpan } = getCellProps(cell, highlightedCourses);
+                    const { className, style, colSpan } = getCellProps(cell);
                     return (
                       <TableCell
                         key={cellIndex}
