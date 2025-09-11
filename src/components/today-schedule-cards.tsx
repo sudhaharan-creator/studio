@@ -47,31 +47,40 @@ export function TodayScheduleCards({ data }: TodayScheduleCardsProps) {
   // Sort items by time
   scheduleItems.sort((a, b) => {
     const convertTo24Hour = (time: string) => {
-      if (!time || !time.includes(':')) {
+      if (!time || typeof time !== 'string' || !time.includes(':')) {
         return 9999; // Put invalid times at the end
       }
+  
+      // Extract the start time, e.g., "09:00 am" from "09:00 am - 10:15 am"
       const timePart = time.split('-')[0].trim();
-      const parts = timePart.split(':');
-      if (parts.length < 2) {
+  
+      // Find am/pm
+      const ampmMatch = timePart.match(/am|pm/i);
+      const ampm = ampmMatch ? ampmMatch[0].toLowerCase() : 'am';
+  
+      // Extract hours and minutes
+      const timeNumbers = timePart.match(/(\d+):(\d+)/);
+      if (!timeNumbers) {
         return 9999;
       }
-      let [hours, minutesPart] = parts;
-      
-      let minutes = (minutesPart.match(/\d+/) || ['0'])[0];
-      const ampm = timePart.toLowerCase().includes('pm') ? 'pm' : 'am';
-      let hour = parseInt(hours, 10);
-
-      if (isNaN(hour) || isNaN(parseInt(minutes, 10))) {
+  
+      let hour = parseInt(timeNumbers[1], 10);
+      const minute = parseInt(timeNumbers[2], 10);
+  
+      if (isNaN(hour) || isNaN(minute)) {
         return 9999;
       }
-
+  
+      // Convert to 24-hour format
       if (ampm === 'pm' && hour < 12) {
         hour += 12;
       }
+      // Handle midnight case (12 am)
       if (ampm === 'am' && hour === 12) {
-        hour = 0; // Midnight case
+        hour = 0;
       }
-      return hour * 60 + parseInt(minutes, 10);
+  
+      return hour * 60 + minute;
     };
 
     return convertTo24Hour(a.time) - convertTo24Hour(b.time);
