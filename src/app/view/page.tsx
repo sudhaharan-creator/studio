@@ -6,20 +6,16 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SheetIcon, XIcon, ArrowLeftIcon } from 'lucide-react';
-import { TimetableDisplay } from '@/components/timetable-display';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import type { SheetData } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useAppContext } from '@/context/app-context';
 
 export default function ViewPage() {
-  const { sheetData, setSheetData } = useAppContext();
-  const [filteredSheetData, setFilteredSheetData] = useState<SheetData | null>(null);
+  const { sheetData, setSheetData, setFilteredSheetData } = useAppContext();
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
   const [uniqueCourses, setUniqueCourses] = useState<string[]>([]);
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const router = useRouter();
@@ -39,9 +35,10 @@ export default function ViewPage() {
         });
       });
       setUniqueCourses(Array.from(courses).sort());
+      // Initially, no filter is applied, so we can set the full data for viewing if needed
       setFilteredSheetData(sheetData);
     }
-  }, [sheetData, router]);
+  }, [sheetData, router, setFilteredSheetData]);
 
   const handleCourseSelection = (course: string, checked: boolean) => {
     setSelectedCourses(prev =>
@@ -50,42 +47,41 @@ export default function ViewPage() {
         : prev.filter(c => c !== course)
     );
   };
-
-  const handleFilterClick = () => {
-    if (!sheetData) return;
-    if (selectedCourses.length === 0) {
-      setFilteredSheetData(sheetData);
-      return;
-    }
-
-    const headerRows = sheetData.slice(0, 2);
-    const bodyRows = sheetData.slice(2);
-
-    const newFilteredData = bodyRows.map(row => {
-      const newRow = row.slice(0, 2);
-      row.slice(2).forEach(cell => {
-        const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
-        if (selectedCourses.includes(courseName)) {
-          newRow.push(cell);
-        } else {
-          newRow.push({ value: '' });
-        }
-      });
-      return newRow;
-    });
-
-    setFilteredSheetData([...headerRows, ...newFilteredData]);
-  };
   
-  const clearFilter = () => {
-    if (sheetData) {
-      setFilteredSheetData(sheetData);
+  const handleViewTimetableClick = () => {
+    if (!sheetData) return;
+
+    let dataToFilter = sheetData;
+    if (selectedCourses.length > 0) {
+        const headerRows = sheetData.slice(0, 2);
+        const bodyRows = sheetData.slice(2);
+
+        const newFilteredData = bodyRows.map(row => {
+            const newRow = row.slice(0, 2); // Keep Date and Classroom No.
+            row.slice(2).forEach(cell => {
+                const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
+                if (selectedCourses.includes(courseName)) {
+                    newRow.push(cell);
+                } else {
+                    newRow.push({ value: '' });
+                }
+            });
+            return newRow;
+        });
+        dataToFilter = [...headerRows, ...newFilteredData];
+    } else {
+        // If no courses are selected, show all
+        dataToFilter = sheetData;
     }
-    setSelectedCourses([]);
-  };
+
+    setFilteredSheetData(dataToFilter);
+    router.push('/view/timetable');
+};
+
 
   const handleBack = () => {
     setSheetData(null);
+    setFilteredSheetData(null);
     router.push('/');
   };
 
@@ -108,7 +104,7 @@ export default function ViewPage() {
                 <SheetIcon className="h-8 w-8 text-primary" />
                 <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200">SheetSync</h1>
             </div>
-          <Button variant="outline" onClick={handleBack}><ArrowLeftIcon /> Back</Button>
+          <Button variant="outline" onClick={handleBack}><ArrowLeftIcon /> Back to Home</Button>
         </header>
 
         <Card className="mb-8 shadow-lg border-none">
@@ -116,7 +112,7 @@ export default function ViewPage() {
               <div className="flex justify-between items-center">
                 <div>
                   <CardTitle className="font-headline">Filter Courses</CardTitle>
-                  <CardDescription>Select the courses you want to see and click filter.</CardDescription>
+                  <CardDescription>Select courses to view on the timetable or view all.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -133,14 +129,9 @@ export default function ViewPage() {
                   </div>
                 ))}
               </div>
-
-              <div className="flex flex-wrap gap-2 pt-4 border-t">
-                <Button onClick={handleFilterClick} disabled={selectedCourses.length === 0}>Filter Timetable</Button>
-                <Button onClick={clearFilter} variant="outline">Show All</Button>
-              </div>
               
               {selectedCourses.length > 0 && (
-                <div className="flex flex-wrap gap-2 pt-4 border-t">
+                <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
                   <span className="text-sm font-medium text-muted-foreground">Selected:</span>
                   {selectedCourses.map(course => (
                     <Badge key={course} variant="secondary" className="flex items-center gap-2">
@@ -152,12 +143,13 @@ export default function ViewPage() {
                   ))}
                 </div>
               )}
+               <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
+                <Button onClick={handleViewTimetableClick}>
+                  {selectedCourses.length > 0 ? 'View Filtered Timetable' : 'View Full Timetable'}
+                </Button>
+              </div>
             </CardContent>
         </Card>
-
-        <div className="transition-opacity duration-500">
-          <TimetableDisplay data={filteredSheetData} />
-        </div>
         
       </main>
     </div>
