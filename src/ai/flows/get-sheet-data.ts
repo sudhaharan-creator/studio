@@ -31,7 +31,6 @@ const SheetDataSchema = z.array(z.array(CellDataSchema));
 
 const GetSheetDataInputSchema = z.object({
   sheetUrl: z.string().describe('The URL of the Google Sheet to get data from.'),
-  apiKey: z.string().optional().describe('The Google API key.'),
 });
 export type GetSheetDataInput = z.infer<typeof GetSheetDataInputSchema>;
 
@@ -71,11 +70,11 @@ const getSheetDataFlow = ai.defineFlow(
     }
 
     const { spreadsheetId } = details;
-    const apiKey = input.apiKey || process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.GOOGLE_API_KEY;
 
     if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-      console.error('Google API Key not found.');
-      throw new Error('API_KEY_MISSING');
+      console.error('Google API Key not found in environment variables.');
+      throw new Error('Google API Key not found. Please provide it in your environment.');
     }
 
     try {
@@ -106,10 +105,6 @@ const getSheetDataFlow = ai.defineFlow(
       
       return { sheetData };
     } catch (error: any) {
-      // Re-throw the specific API key error to be caught by the client
-      if (error.message === 'API_KEY_MISSING') {
-          throw error;
-      }
       console.error('Error fetching or processing sheet data:', error);
       throw new Error('Failed to retrieve or process sheet data.');
     }
