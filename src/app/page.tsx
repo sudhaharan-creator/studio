@@ -11,36 +11,30 @@ import { mockTimetableData } from '@/lib/mock-data';
 import type { SheetData } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getSheetData, GetSheetDataOutput } from '@/ai/flows/get-sheet-data';
-import { Textarea } from '@/components/ui/textarea';
 
 export default function Home() {
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [jsonData, setJsonData] = useState('');
 
   const handleFetchData = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sheetUrl.trim().startsWith('https://docs.google.com/spreadsheets/d/')) {
       setError('Please enter a valid Google Sheet URL.');
       setSheetData(null);
-      setJsonData('');
       return;
     }
     setError('');
     setIsLoading(true);
     setSheetData(null);
-    setJsonData('');
 
     try {
       const result: GetSheetDataOutput = await getSheetData({ sheetUrl: sheetUrl });
       setSheetData(result.sheetData);
-      setJsonData(JSON.stringify(result.sheetData, null, 2));
     } catch (err: any) {
       setError('Failed to fetch sheet data. Using mock data instead.');
       setSheetData(mockTimetableData);
-      setJsonData(JSON.stringify(mockTimetableData, null, 2));
     } finally {
       setIsLoading(false);
     }
@@ -93,24 +87,7 @@ export default function Home() {
           {sheetData && <TimetableDisplay data={sheetData} />}
         </div>
         
-        {jsonData && (
-          <Card className="mt-8 shadow-lg border-none">
-            <CardHeader>
-              <CardTitle>JSON Data</CardTitle>
-              <CardDescription>The JSON representation of your sheet data.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                readOnly
-                value={jsonData}
-                className="h-96 font-code"
-              />
-            </CardContent>
-          </Card>
-        )}
       </main>
     </div>
   );
 }
-
-    
