@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SheetIcon, GitBranchIcon } from 'lucide-react';
 import { TimetableDisplay } from '@/components/timetable-display';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
-import { mockTimetableData } from '@/lib/mock-data';
 import type { SheetData } from '@/lib/types';
 import { getSheetData, GetSheetDataOutput } from '@/ai/flows/get-sheet-data';
 import {
@@ -21,6 +20,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
+const API_KEY_STORAGE_KEY = 'google-api-key';
+
 export default function Home() {
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
@@ -29,13 +30,22 @@ export default function Home() {
   const [apiKey, setApiKey] = useState('');
   const { toast } = useToast();
 
+  useEffect(() => {
+    const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+    if (storedKey) {
+      setApiKey(storedKey);
+    }
+  }, []);
+
   const fetchData = async (key?: string) => {
     setIsLoading(true);
     setSheetData(null);
+    const effectiveApiKey = key || apiKey;
+
     try {
       const result: GetSheetDataOutput = await getSheetData({
         sheetUrl: sheetUrl,
-        apiKey: key,
+        apiKey: effectiveApiKey,
       });
       if (result.sheetData) {
         setSheetData(result.sheetData);
@@ -85,6 +95,7 @@ export default function Home() {
       });
       return;
     }
+    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
     setShowApiKeyDialog(false);
     await fetchData(apiKey);
   };
@@ -155,7 +166,7 @@ export default function Home() {
               </div>
               <DialogFooter>
                 <Button type="button" variant="secondary" onClick={() => setShowApiKeyDialog(false)}>Cancel</Button>
-                <Button type="submit">Submit</Button>
+                <Button type="submit">Submit and Sync</Button>
               </DialogFooter>
             </form>
           </DialogContent>

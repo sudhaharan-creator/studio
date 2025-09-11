@@ -10,7 +10,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { SheetData } from '@/lib/types';
-import { mockTimetableData } from '@/lib/mock-data';
 
 const CellStyleSchema = z.object({
   bold: z.boolean().optional(),
@@ -73,7 +72,6 @@ const getSheetDataFlow = ai.defineFlow(
     const apiKey = input.apiKey || process.env.GOOGLE_API_KEY;
 
     if (!apiKey) {
-      console.error('Google API Key not found.');
       throw new Error('Google API Key not found. Please provide it.');
     }
 
@@ -95,7 +93,7 @@ const getSheetDataFlow = ai.defineFlow(
         throw new Error('No sheets found in the spreadsheet.');
       }
       
-      const range = `${firstSheetName}!A1:Z1000`;
+      const range = `'${firstSheetName}'!A1:Z1000`;
       const valuesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
       
       const response = await fetch(valuesUrl);
