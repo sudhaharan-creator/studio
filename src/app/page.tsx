@@ -34,11 +34,16 @@ export default function Home() {
           setSheetUrl(savedUrl);
           setIsUrlLocked(true);
         } else {
+          // This is a new user or a user without a saved URL.
           setSheetUrl('');
           setIsUrlLocked(false);
         }
+      } else {
+        // Not logged in
+        setSheetUrl('');
+        setIsUrlLocked(false);
       }
-      setIsFetchingPrefs(false);
+      setIsFetchingPrefs(false); // This should be called in all paths
     };
 
     if (!authLoading) {
@@ -66,10 +71,38 @@ export default function Home() {
 
         if (user) {
           const docRef = doc(db, 'userPreferences', user.uid);
+          // Only lock the URL if it's a new one being set, or if it already exists.
           await setDoc(docRef, { sheetUrl: sheetUrl }, { merge: true });
           setIsUrlLocked(true);
         }
 
+        router.push('/view');
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No data found in the sheet.',
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Error Fetching Data',
+        description: err.message || 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleResync = async () => {
+    // A simplified version of handleFetchData for re-syncing
+    setIsLoading(true);
+    try {
+      const result: GetSheetDataOutput = await getSheetData({ sheetUrl });
+      if (result.sheetData) {
+        setSheetData(result.sheetData);
         router.push('/view');
       } else {
         toast({
@@ -134,35 +167,44 @@ export default function Home() {
         <Card className="shadow-lg border-none">
           <CardHeader>
             <CardTitle className="font-headline">
-              {isUrlLocked ? 'Your Connected Timetable' : 'Connect your Google Sheet'}
+              {isUrlLocked && user ? 'Your Connected Timetable' : 'Connect your Google Sheet'}
             </CardTitle>
             <CardDescription>
-              {isUrlLocked
+              {isUrlLocked && user
                 ? 'Sync your saved timetable or manage your sheet URL.'
                 : 'Enter the URL of your Google Sheet to display the timetable.'
               }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleFetchData} className="flex flex-col gap-4">
-              <div className="relative flex-grow w-full">
-                <GitBranchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  value={sheetUrl}
-                  onChange={(e) => setSheetUrl(e.target.value)}
-                  className="pl-10"
-                  aria-label="Google Sheet URL"
-                  disabled={isLoading || isUrlLocked}
-                />
-              </div>
+             <div className="flex flex-col gap-4">
+                <form onSubmit={handleFetchData} className="flex flex-col gap-4">
+                  <div className="relative flex-grow w-full">
+                    <GitBranchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      value={sheetUrl}
+                      onChange={(e) => setSheetUrl(e.target.value)}
+                      className="pl-10"
+                      aria-label="Google Sheet URL"
+                      disabled={isLoading || (isUrlLocked && user)}
+                    />
+                  </div>
+                  
+                  {!isUrlLocked && (
+                    <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+                        {isLoading ? 'Syncing...' : 'Sync Timetable'}
+                    </Button>
+                  )}
+                </form>
+
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-                  {isLoading ? 'Syncing...' : 'Sync Timetable'}
-                </Button>
                 {user && isUrlLocked && (
                   <>
+                    <Button onClick={handleResync} disabled={isLoading} className="w-full sm:w-auto">
+                      {isLoading ? 'Syncing...' : 'Sync Timetable'}
+                    </Button>
                     <Button variant="outline" onClick={handleChangeUrl} disabled={isLoading} className="w-full sm:w-auto">
                       Change URL
                     </Button>
@@ -172,7 +214,7 @@ export default function Home() {
                   </>
                 )}
               </div>
-            </form>
+            </div>
           </CardContent>
         </Card>
       </main>
