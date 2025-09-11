@@ -39,7 +39,7 @@ export default function Home() {
           setIsUrlLocked(false);
         }
       } else {
-        // Not logged in
+        // Not logged in, clear any previous user's state
         setSheetUrl('');
         setIsUrlLocked(false);
       }
@@ -76,7 +76,7 @@ export default function Home() {
           setIsUrlLocked(true);
         }
 
-        router.push('/view'); // Ensure navigation happens
+        router.push('/view');
       } else {
         toast({
           variant: 'destructive',
