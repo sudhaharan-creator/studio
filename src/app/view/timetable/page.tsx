@@ -9,6 +9,7 @@ import { TimetableDisplay } from '@/components/timetable-display';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { useAppContext } from '@/context/app-context';
 import type { SheetData } from '@/lib/types';
+import { TodayScheduleCards } from '@/components/today-schedule-cards';
 
 export default function TimetablePage() {
   const { filteredSheetData } = useAppContext();
@@ -80,8 +81,12 @@ export default function TimetablePage() {
         </header>
 
         <div className="transition-opacity duration-500">
-          {view === 'today' && dailySchedule && dailySchedule.length <= 2 ? (
-            <p>No classes scheduled for today.</p>
+          {view === 'today' ? (
+            dailySchedule && dailySchedule.length > 2 ? (
+              <TodayScheduleCards data={dailySchedule} />
+            ) : (
+              <p>No classes scheduled for today.</p>
+            )
           ) : (
             currentData && <TimetableDisplay data={currentData} />
           )}
