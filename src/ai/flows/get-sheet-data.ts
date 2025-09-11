@@ -31,6 +31,7 @@ const SheetDataSchema = z.array(z.array(CellDataSchema));
 
 const GetSheetDataInputSchema = z.object({
   sheetUrl: z.string().describe('The URL of the Google Sheet to get data from.'),
+  apiKey: z.string().optional().describe('Google API Key for accessing the sheet.'),
 });
 export type GetSheetDataInput = z.infer<typeof GetSheetDataInputSchema>;
 
@@ -65,16 +66,15 @@ const getSheetDataFlow = ai.defineFlow(
     const details = getSheetDetails(input.sheetUrl);
     if (!details) {
       console.error('Invalid Google Sheet URL');
-      // Using mock data as a fallback for invalid URLs, but you could throw an error.
       return { sheetData: mockTimetableData };
     }
 
     const { spreadsheetId } = details;
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = input.apiKey || process.env.GOOGLE_API_KEY;
 
-    if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-      console.error('Google API Key not found in environment variables.');
-      throw new Error('Google API Key not found. Please provide it in your environment.');
+    if (!apiKey) {
+      console.error('Google API Key not found.');
+      throw new Error('Google API Key not found. Please provide it.');
     }
 
     try {
@@ -97,7 +97,8 @@ const getSheetDataFlow = ai.defineFlow(
       
       const sheetData: SheetData = allRows.map((row: string[]) => {
         const fullRow = [...row];
-        while (fullRow.length < (allRows[0]?.length || 0)) {
+        const maxCols = Math.max(...allRows.map(r => r.length));
+        while (fullRow.length < maxCols) {
             fullRow.push('');
         }
         return fullRow.map((cellValue: string) => ({ value: cellValue }));
