@@ -102,12 +102,6 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
   const headerRows = data.slice(0, 2);
   const bodyRows = data.slice(2);
   
-  // Add Attendance header if user is logged in
-  if (user && headerRows.length > 1) {
-    headerRows[0].push({ value: 'Attendance', style: { bold: true, backgroundColor: '#d9ead3' } });
-    headerRows[1].push({ value: 'Mark', style: { bold: true } });
-  }
-
   return (
     <Card
       className={cn(
@@ -206,4 +200,3 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
     </Card>
   );
 }
-
