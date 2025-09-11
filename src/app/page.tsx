@@ -1,49 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SheetIcon, GitBranchIcon } from 'lucide-react';
+import { SheetIcon, GitBranchIcon, XIcon } from 'lucide-react';
 import { TimetableDisplay } from '@/components/timetable-display';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import type { SheetData } from '@/lib/types';
 import { getSheetData, GetSheetDataOutput } from '@/ai/flows/get-sheet-data';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 export default function Home() {
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const { toast } = useToast();
+  const [uniqueCourses, setUniqueCourses] = useState<string[]>([]);
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
+  const [tempApiKey, setTempApiKey] = useState('');
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    setSheetData(null);
-
-    try {
-      const result: GetSheetDataOutput = await getSheetData({
-        sheetUrl: sheetUrl,
-      });
-      if (result.sheetData) {
-        setSheetData(result.sheetData);
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'No data found in the sheet.',
-        });
-      }
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Fetching Data',
-        description: err.message,
-      });
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    const storedApiKey = localStorage.getItem('googleApiKey');
+    if (storedApiKey) {
+      setApiKey(storedApiKey);
     }
-  };
+  }, []);
+  
+  useEffect(() => {
+    if (sheetData) {
+      const courses = new Set<string>();
+      sheetData.slice(2).forEach(row => {
+        row.forEach(cell => {
+          const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
+          if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && isNaN(parseInt(courseName))) {
+            courses.add(courseName);
+          }
+        });
+      });
+      setUniqueCourses(Array.from(courses).sort());
+    }
+  }, [sheetData]);
 
   const handleFetchData = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,8 +63,77 @@ export default function Home() {
       setSheetData(null);
       return;
     }
-    fetchData();
+    await fetchData();
   };
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    setSheetData(null);
+    setSelectedCourses([]);
+  
+    try {
+      if (!apiKey) {
+        const key = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '';
+        if (!key) {
+          setIsApiModalOpen(true);
+          setIsLoading(false);
+          return;
+        }
+        setApiKey(key);
+      }
+  
+      const result: GetSheetDataOutput = await getSheetData({
+        sheetUrl: sheetUrl,
+        apiKey: apiKey as string,
+      });
+      if (result.sheetData) {
+        setSheetData(result.sheetData);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'No data found in the sheet.',
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        variant: 'destructive',
+        title: 'Error Fetching Data',
+        description: err.message || 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApiKeySubmit = () => {
+    if (tempApiKey) {
+      setApiKey(tempApiKey);
+      localStorage.setItem('googleApiKey', tempApiKey);
+      setIsApiModalOpen(false);
+      fetchData();
+    }
+  };
+
+  const handleCourseSelection = (course: string) => {
+    setSelectedCourses(prev =>
+      prev.includes(course)
+        ? prev.filter(c => c !== course)
+        : [...prev, course]
+    );
+  };
+  
+  const clearSelection = () => {
+    setSelectedCourses([]);
+  };
+
+  const filteredData = useMemo(() => {
+    if (selectedCourses.length === 0) {
+      return sheetData;
+    }
+    return sheetData;
+  }, [sheetData, selectedCourses]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-body">
@@ -94,10 +170,49 @@ export default function Home() {
           </CardContent>
         </Card>
 
+        {sheetData && (
+          <Card className="mb-8 shadow-lg border-none">
+            <CardHeader>
+              <CardTitle className="font-headline">Filter Courses</CardTitle>
+              <CardDescription>Select one or more courses to highlight them in the timetable.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+               <div className="flex items-center gap-4">
+                <Select onValueChange={handleCourseSelection}>
+                  <SelectTrigger className="w-full sm:w-[280px]">
+                    <SelectValue placeholder="Select a course to filter..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {uniqueCourses.map(course => (
+                      <SelectItem key={course} value={course} disabled={selectedCourses.includes(course)}>
+                        {course}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                 {selectedCourses.length > 0 && (
+                   <Button variant="ghost" onClick={clearSelection} className="text-sm">Clear Selection</Button>
+                 )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedCourses.map(course => (
+                  <Badge key={course} variant="secondary" className="flex items-center gap-2">
+                    {course}
+                    <button onClick={() => handleCourseSelection(course)} className="appearance-none border-none bg-transparent p-0">
+                      <XIcon className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="transition-opacity duration-500">
           {isLoading && <TimetableSkeleton />}
-          {sheetData && <TimetableDisplay data={sheetData} />}
+          {filteredData && <TimetableDisplay data={filteredData} highlightedCourses={selectedCourses} />}
         </div>
+        
       </main>
     </div>
   );

@@ -8,11 +8,22 @@ import { cn } from '@/lib/utils';
 
 interface TimetableDisplayProps {
   data: SheetData;
+  highlightedCourses?: string[];
 }
 
-const getCellProps = (cell: { style?: CellStyle; colSpan?: number }) => {
-  const style = cell.style;
-  if (!style && !cell.colSpan) return { className: '', style: {} };
+const getCellProps = (
+  cell: { value: string; style?: CellStyle; colSpan?: number },
+  highlightedCourses?: string[]
+) => {
+  const style = cell.style || {};
+  let isHighlighted = false;
+
+  if (highlightedCourses && highlightedCourses.length > 0) {
+    const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
+    if (highlightedCourses.includes(courseName)) {
+      isHighlighted = true;
+    }
+  }
 
   const classNames: string[] = [];
   if (style?.bold) classNames.push('font-bold');
@@ -21,13 +32,19 @@ const getCellProps = (cell: { style?: CellStyle; colSpan?: number }) => {
 
   const inlineStyles: React.CSSProperties = {};
   if (style?.color) inlineStyles.color = style.color;
-  if (style?.backgroundColor) inlineStyles.backgroundColor = style.backgroundColor;
   if (style?.borderRight) inlineStyles.borderRight = style.borderRight;
+
+  if (isHighlighted) {
+    inlineStyles.backgroundColor = 'hsl(var(--accent))';
+    inlineStyles.color = 'hsl(var(--accent-foreground))';
+  } else {
+    if (style?.backgroundColor) inlineStyles.backgroundColor = style.backgroundColor;
+  }
 
   return { className: classNames.join(' '), style: inlineStyles, colSpan: cell.colSpan };
 };
 
-export function TimetableDisplay({ data }: TimetableDisplayProps) {
+export function TimetableDisplay({ data, highlightedCourses }: TimetableDisplayProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -75,7 +92,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
               {bodyRows.map((row, rowIndex) => (
                 <TableRow key={rowIndex} className="transition-colors">
                   {row.map((cell, cellIndex) => {
-                    const { className, style, colSpan } = getCellProps(cell);
+                    const { className, style, colSpan } = getCellProps(cell, highlightedCourses);
                     return (
                       <TableCell
                         key={cellIndex}
@@ -96,5 +113,3 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
     </Card>
   );
 }
-
-    
