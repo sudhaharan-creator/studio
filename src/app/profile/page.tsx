@@ -190,7 +190,7 @@ export default function ProfilePage() {
               <TabsContent value="settings" className="mt-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Timetable Settings</CardTitle>
+                    <CardTitle>User Settings</CardTitle>
                     <CardDescription>Manage your connected Google Sheet URL.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
