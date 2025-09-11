@@ -31,11 +31,12 @@ const SheetDataSchema = z.array(z.array(CellDataSchema));
 
 const GetSheetDataInputSchema = z.object({
   sheetUrl: z.string().describe('The URL of the Google Sheet to get data from.'),
+  apiKey: z.string().optional().describe('The Google API key.'),
 });
 export type GetSheetDataInput = z.infer<typeof GetSheetDataInputSchema>;
 
 const GetSheetDataOutputSchema = z.object({
-  sheetData: SheetDataSchema.describe('The data from the sheet.'),
+  sheetData: SheetDataSchema.optional().describe('The data from the sheet.'),
 });
 export type GetSheetDataOutput = z.infer<typeof GetSheetDataOutputSchema>;
 
@@ -65,21 +66,21 @@ const getSheetDataFlow = ai.defineFlow(
     const details = getSheetDetails(input.sheetUrl);
     if (!details) {
       console.error('Invalid Google Sheet URL');
+      // Using mock data as a fallback for invalid URLs, but you could throw an error.
       return { sheetData: mockTimetableData };
     }
 
     const { spreadsheetId } = details;
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = input.apiKey || process.env.GOOGLE_API_KEY;
 
     if (!apiKey || apiKey === 'YOUR_API_KEY_HERE') {
-      console.error('Google API Key not found in .env file. Returning mock data.');
-      return { sheetData: mockTimetableData };
+      console.error('Google API Key not found.');
+      throw new Error('API_KEY_MISSING');
     }
 
     try {
-      // Assuming the data is on 'Sheet1'. You might need to make this dynamic if needed.
       const sheetName = 'Sheet1'; 
-      const range = `${sheetName}!A1:Z1000`; // Fetch a large enough range
+      const range = `${sheetName}!A1:Z1000`;
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
       
       const response = await fetch(url);
@@ -94,11 +95,8 @@ const getSheetDataFlow = ai.defineFlow(
       if (allRows.length === 0) {
         return { sheetData: [] };
       }
-
-      // The Google Sheets API returns an array of arrays of strings.
-      // We need to convert this to our SheetData structure.
+      
       const sheetData: SheetData = allRows.map((row: string[]) => {
-        // Ensure each row has the same number of cells as the header
         const fullRow = [...row];
         while (fullRow.length < (allRows[0]?.length || 0)) {
             fullRow.push('');
@@ -106,17 +104,14 @@ const getSheetDataFlow = ai.defineFlow(
         return fullRow.map((cellValue: string) => ({ value: cellValue }));
       });
       
-      // Note: The original implementation had a complex transformation logic
-      // that was hardcoded to the mock data. This has been simplified.
-      // For real styling from the sheet, you would use spreadsheets.get API
-      // with `includeGridData=true`, which is more complex.
-      // For now, we are just returning the raw values.
-
-      return { sheetData: sheetData };
-    } catch (error) {
+      return { sheetData };
+    } catch (error: any) {
+      // Re-throw the specific API key error to be caught by the client
+      if (error.message === 'API_KEY_MISSING') {
+          throw error;
+      }
       console.error('Error fetching or processing sheet data:', error);
-      // Fallback to mock data on any error
-      return { sheetData: mockTimetableData };
+      throw new Error('Failed to retrieve or process sheet data.');
     }
   }
 );
