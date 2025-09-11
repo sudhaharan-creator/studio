@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import { db } from '@/lib/firebase';
@@ -10,10 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, User as UserIcon, Settings, BookOpen } from 'lucide-react';
+import { Loader2, User as UserIcon, Settings, BookOpen, Palette } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -26,6 +27,32 @@ export default function ProfilePage() {
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userCourses, setUserCourses] = useState<string[]>([]);
+  
+  const [themeColors, setThemeColors] = useState({
+    primary: '',
+    background: '',
+    accent: '',
+  });
+  const [isSubmittingTheme, setIsSubmittingTheme] = useState(false);
+
+  const fetchPreferences = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    const docRef = doc(db, 'userPreferences', user.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      setSheetUrl(data.sheetUrl || '');
+      setSavedSheetUrl(data.sheetUrl || '');
+      setUserCourses(data.courses || []);
+      setThemeColors({
+        primary: data.theme?.primary || '',
+        background: data.theme?.background || '',
+        accent: data.theme?.accent || '',
+      });
+    }
+    setIsLoading(false);
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -33,23 +60,9 @@ export default function ProfilePage() {
         router.push('/');
         return;
       }
-      
-      const fetchPreferences = async () => {
-        setIsLoading(true);
-        const docRef = doc(db, 'userPreferences', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setSheetUrl(data.sheetUrl || '');
-          setSavedSheetUrl(data.sheetUrl || '');
-          setUserCourses(data.courses || []);
-        }
-        setIsLoading(false);
-      };
-      
       fetchPreferences();
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, fetchPreferences]);
 
   const handleUpdateUrl = async () => {
     if (!user) return;
@@ -83,6 +96,26 @@ export default function ProfilePage() {
       setIsSubmitting(false);
     }
   };
+  
+  const handleThemeColorChange = (colorName: keyof typeof themeColors, value: string) => {
+    setThemeColors(prev => ({ ...prev, [colorName]: value }));
+  };
+
+  const handleSaveTheme = async () => {
+    if (!user) return;
+    setIsSubmittingTheme(true);
+    try {
+      const docRef = doc(db, 'userPreferences', user.uid);
+      await setDoc(docRef, { theme: themeColors }, { merge: true });
+      toast({ title: 'Success', description: 'Theme preferences saved!' });
+      // Optionally force a reload to see theme changes immediately
+      window.location.reload();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to save theme.' });
+    } finally {
+      setIsSubmittingTheme(false);
+    }
+  };
 
   if (isLoading || authLoading) {
     return (
@@ -107,7 +140,7 @@ export default function ProfilePage() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="settings"><Settings className="mr-2"/> Settings</TabsTrigger>
                 <TabsTrigger value="my-courses"><BookOpen className="mr-2"/> My Courses</TabsTrigger>
-                <TabsTrigger value="persona"><UserIcon className="mr-2"/> User Persona</TabsTrigger>
+                <TabsTrigger value="preferences"><Palette className="mr-2"/> Preferences</TabsTrigger>
               </TabsList>
               <TabsContent value="settings" className="mt-6">
                 <Card>
@@ -170,14 +203,45 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
               </TabsContent>
-              <TabsContent value="persona" className="mt-6">
+              <TabsContent value="preferences" className="mt-6">
                  <Card>
                   <CardHeader>
-                    <CardTitle>User Persona</CardTitle>
-                    <CardDescription>This feature is coming soon.</CardDescription>
+                    <CardTitle>Theme Preferences</CardTitle>
+                    <CardDescription>Customize the look and feel of the application. Enter HSL values (e.g., 224 71% 4%).</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">Define your persona to help us tailor your experience.</p>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="primaryColor">Primary Color</Label>
+                        <Input
+                          id="primaryColor"
+                          value={themeColors.primary}
+                          onChange={(e) => handleThemeColorChange('primary', e.target.value)}
+                          placeholder="e.g., 180 80% 60%"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="backgroundColor">Background Color</Label>
+                        <Input
+                          id="backgroundColor"
+                          value={themeColors.background}
+                          onChange={(e) => handleThemeColorChange('background', e.target.value)}
+                          placeholder="e.g., 224 71% 4%"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="accentColor">Accent Color</Label>
+                        <Input
+                          id="accentColor"
+                          value={themeColors.accent}
+                          onChange={(e) => handleThemeColorChange('accent', e.target.value)}
+                          placeholder="e.g., 200 60% 50%"
+                        />
+                      </div>
+                    </div>
+                    <Button onClick={handleSaveTheme} disabled={isSubmittingTheme}>
+                      {isSubmittingTheme ? <Loader2 className="animate-spin" /> : 'Save Theme'}
+                    </Button>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -188,3 +252,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

@@ -7,6 +7,7 @@ import { AppProvider } from '@/context/app-context';
 import { AuthProvider } from '@/context/auth-context';
 import { AuthDialog } from '@/components/auth/auth-dialog';
 import { SiteHeader } from '@/components/site-header';
+import { ThemeManager } from '@/components/theme-manager';
 
 export default function RootLayout({
   children,
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AppProvider>
           <AuthProvider>
+            <ThemeManager />
             <AuthDialog />
             <SiteHeader />
             {children}
@@ -33,3 +35,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
