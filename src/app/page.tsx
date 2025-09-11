@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SheetIcon, GitBranchIcon, KeyRound } from 'lucide-react';
+import { SheetIcon, GitBranchIcon } from 'lucide-react';
 import { TimetableDisplay } from '@/components/timetable-display';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { mockTimetableData } from '@/lib/mock-data';
@@ -43,9 +43,8 @@ export default function Home() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: 'No data found in the sheet. Showing mock data instead.',
+          description: 'No data found in the sheet.',
         });
-        setSheetData(mockTimetableData);
       }
     } catch (err: any) {
       if (err.message.includes('Google API Key not found')) {
@@ -54,9 +53,8 @@ export default function Home() {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: `Failed to fetch sheet data. Using mock data instead. Error: ${err.message}`,
+          description: `Failed to fetch sheet data: ${err.message}`,
         });
-        setSheetData(mockTimetableData);
       }
     } finally {
       setIsLoading(false);
