@@ -53,7 +53,7 @@ export default function AttendancePage() {
         fetchAttendance();
       }
     }
-  }, [user, authLoading, router, fetchAttendance]);
+  }, [authLoading, user, router, fetchAttendance]);
 
   if (isLoading || authLoading) {
     return (
