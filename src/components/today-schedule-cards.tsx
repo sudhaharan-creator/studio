@@ -46,15 +46,23 @@ export function TodayScheduleCards({ data }: TodayScheduleCardsProps) {
   
   // Sort items by time
   scheduleItems.sort((a, b) => {
-    const timeA = a.time.split('-')[0].trim();
-    const timeB = b.time.split('-')[0].trim();
-    
     const convertTo24Hour = (time: string) => {
-        let [hours, minutesPart] = time.split(':');
+        if (!time || !time.includes(':')) {
+            return 9999; // Put invalid times at the end
+        }
+        const timePart = time.split('-')[0].trim();
+        let [hours, minutesPart] = timePart.split(':');
+        if (!minutesPart) {
+            return 9999;
+        }
         let minutes = minutesPart.slice(0, 2);
-        const ampm = time.toLowerCase().includes('pm') ? 'pm' : 'am';
+        const ampm = timePart.toLowerCase().includes('pm') ? 'pm' : 'am';
         let hour = parseInt(hours, 10);
         
+        if (isNaN(hour) || isNaN(parseInt(minutes, 10))) {
+            return 9999;
+        }
+
         if (ampm === 'pm' && hour < 12) {
             hour += 12;
         }
@@ -64,7 +72,7 @@ export function TodayScheduleCards({ data }: TodayScheduleCardsProps) {
         return hour * 60 + parseInt(minutes, 10);
     };
 
-    return convertTo24Hour(timeA) - convertTo24Hour(timeB);
+    return convertTo24Hour(a.time) - convertTo24Hour(b.time);
   });
 
   return (
