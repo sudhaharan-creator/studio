@@ -11,8 +11,7 @@ export type CellData = {
   value: string;
   style?: CellStyle;
   colSpan?: number;
+  rowSpan?: number;
 };
 
 export type SheetData = CellData[][];
-
-    
