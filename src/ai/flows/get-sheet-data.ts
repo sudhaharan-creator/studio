@@ -30,7 +30,6 @@ const SheetDataSchema = z.array(z.array(CellDataSchema));
 
 const GetSheetDataInputSchema = z.object({
   sheetUrl: z.string().describe('The URL of the Google Sheet to get data from.'),
-  apiKey: z.string().optional().describe('Google API Key for accessing the sheet.'),
 });
 export type GetSheetDataInput = z.infer<typeof GetSheetDataInputSchema>;
 
@@ -69,10 +68,10 @@ const getSheetDataFlow = ai.defineFlow(
     }
 
     const { spreadsheetId } = details;
-    const apiKey = input.apiKey || process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.GOOGLE_API_KEY;
 
     if (!apiKey) {
-      throw new Error('Google API Key not found. Please provide it.');
+      throw new Error('Google API Key not found. Please provide it in the GOOGLE_API_KEY environment variable.');
     }
 
     try {
