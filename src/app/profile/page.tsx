@@ -10,11 +10,52 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, User as UserIcon, Settings, BookOpen, Palette } from 'lucide-react';
+import { Loader2, User as UserIcon, Settings, BookOpen, Palette, CheckIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+
+const colorPalettes = [
+  {
+    name: 'Default Light',
+    primary: '180 100% 25.1%',
+    background: '0 0% 94.1%',
+    accent: '200 53% 79%',
+  },
+  {
+    name: 'Default Dark',
+    primary: '180 80% 60%',
+    background: '224 71% 4%',
+    accent: '200 60% 50%',
+  },
+  {
+    name: 'Forest',
+    primary: '140 60% 40%',
+    background: '30 20% 95%',
+    accent: '140 50% 70%',
+  },
+  {
+    name: 'Ocean',
+    primary: '210 90% 50%',
+    background: '220 30% 96%',
+    accent: '190 70% 80%',
+  },
+  {
+    name: 'Sunset',
+    primary: '25 90% 55%',
+    background: '340 20% 10%',
+    accent: '0 80% 70%',
+  },
+  {
+    name: 'Plum',
+    primary: '270 70% 50%',
+    background: '270 10% 97%',
+    accent: '270 50% 80%',
+  },
+];
+
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -97,8 +138,12 @@ export default function ProfilePage() {
     }
   };
   
-  const handleThemeColorChange = (colorName: keyof typeof themeColors, value: string) => {
-    setThemeColors(prev => ({ ...prev, [colorName]: value }));
+  const handleThemeSelect = (palette: typeof colorPalettes[0]) => {
+    setThemeColors({
+      primary: palette.primary,
+      background: palette.background,
+      accent: palette.accent,
+    });
   };
 
   const handleSaveTheme = async () => {
@@ -207,37 +252,38 @@ export default function ProfilePage() {
                  <Card>
                   <CardHeader>
                     <CardTitle>Theme Preferences</CardTitle>
-                    <CardDescription>Customize the look and feel of the application. Enter HSL values (e.g., 224 71% 4%).</CardDescription>
+                    <CardDescription>Customize the look and feel of the application. Select a palette and save.</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="primaryColor">Primary Color</Label>
-                        <Input
-                          id="primaryColor"
-                          value={themeColors.primary}
-                          onChange={(e) => handleThemeColorChange('primary', e.target.value)}
-                          placeholder="e.g., 180 80% 60%"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="backgroundColor">Background Color</Label>
-                        <Input
-                          id="backgroundColor"
-                          value={themeColors.background}
-                          onChange={(e) => handleThemeColorChange('background', e.target.value)}
-                          placeholder="e.g., 224 71% 4%"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="accentColor">Accent Color</Label>
-                        <Input
-                          id="accentColor"
-                          value={themeColors.accent}
-                          onChange={(e) => handleThemeColorChange('accent', e.target.value)}
-                          placeholder="e.g., 200 60% 50%"
-                        />
-                      </div>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {colorPalettes.map((palette) => {
+                        const isActive =
+                          themeColors.primary === palette.primary &&
+                          themeColors.background === palette.background &&
+                          themeColors.accent === palette.accent;
+                        
+                        return (
+                          <div key={palette.name} onClick={() => handleThemeSelect(palette)} className="cursor-pointer">
+                            <div
+                              className={cn(
+                                "rounded-lg border-2 p-2 transition-all",
+                                isActive ? "border-primary" : "border-transparent hover:border-muted-foreground"
+                              )}
+                            >
+                              <div className="space-y-1 rounded-md p-2" style={{ backgroundColor: `hsl(${palette.background})`}}>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-xs font-semibold" style={{ color: `hsl(${palette.primary})`}}>{palette.name}</p>
+                                  {isActive && <CheckIcon className="h-4 w-4" style={{ color: `hsl(${palette.primary})`}} />}
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <div className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${palette.primary})` }} />
+                                  <div className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${palette.accent})` }} />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     <Button onClick={handleSaveTheme} disabled={isSubmittingTheme}>
                       {isSubmittingTheme ? <Loader2 className="animate-spin" /> : 'Save Theme'}
@@ -252,5 +298,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
