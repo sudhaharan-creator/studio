@@ -4,11 +4,15 @@ export type CellStyle = {
   underline?: boolean;
   color?: string;
   backgroundColor?: string;
+  borderRight?: string;
 };
 
 export type CellData = {
   value: string;
   style?: CellStyle;
+  colSpan?: number;
 };
 
 export type SheetData = CellData[][];
+
+    
