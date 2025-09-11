@@ -4,24 +4,19 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SheetIcon, GitBranchIcon, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { SheetIcon, GitBranchIcon, AlertCircle } from 'lucide-react';
 import { TimetableDisplay } from '@/components/timetable-display';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { mockTimetableData } from '@/lib/mock-data';
 import type { SheetData } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getSheetData, GetSheetDataOutput } from '@/ai/flows/get-sheet-data';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [date, setDate] = useState<Date | undefined>(new Date());
 
   const handleFetchData = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,12 +32,11 @@ export default function Home() {
     try {
       const result: GetSheetDataOutput = await getSheetData({ 
         sheetUrl: sheetUrl,
-        date: date ? format(date, 'yyyy-MM-dd') : undefined,
       });
       if (result.sheetData.length > 2) {
         setSheetData(result.sheetData);
       } else {
-        setError('No data found for the selected date. Showing mock data instead.');
+        setError('No data found in the sheet. Showing mock data instead.');
         setSheetData(mockTimetableData);
       }
     } catch (err: any) {
@@ -66,7 +60,7 @@ export default function Home() {
           <CardHeader>
             <CardTitle className="font-headline">Connect your Google Sheet</CardTitle>
             <CardDescription>
-              Enter the URL of your Google Sheet to display the timetable for a specific date.
+              Enter the URL of your Google Sheet to display the entire timetable.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -82,28 +76,6 @@ export default function Home() {
                   aria-label="Google Sheet URL"
                 />
               </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-[280px] justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
               <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
                 {isLoading ? 'Syncing...' : 'Sync Timetable'}
               </Button>

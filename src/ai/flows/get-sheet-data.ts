@@ -99,12 +99,12 @@ const getSheetDataFlow = ai.defineFlow(
 
       const headerRows = allRows.slice(0, 2).map(row => row.map((cell: string) => ({ value: cell })));
       const dataRows = allRows.slice(2);
-      let filteredRows: any[] = [];
+      let relevantRows: any[] = [];
 
       if(input.date) {
         const selectedDate = parse(input.date, 'yyyy-MM-dd', new Date());
         
-        filteredRows = dataRows.filter(row => {
+        relevantRows = dataRows.filter(row => {
           if (row[0]) {
             try {
               // Assuming date is in 'Day, Month Day, Year' format
@@ -118,10 +118,10 @@ const getSheetDataFlow = ai.defineFlow(
         });
 
       } else {
-        filteredRows = dataRows;
+        relevantRows = dataRows;
       }
 
-      const sheetData: SheetData = [...headerRows, ...filteredRows.map(row => row.map((cell: string) => ({ value: cell })))];
+      const sheetData: SheetData = [...headerRows, ...relevantRows.map(row => row.map((cell: string) => ({ value: cell })))];
 
       // A simple transformation to demonstrate a potential use of an LLM.
       // In a real app, you might use a prompt to format, translate, or analyze the data.
