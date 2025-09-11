@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Button } from './ui/button';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 interface TimetableDisplayProps {
@@ -45,7 +45,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
   const [isMounted, setIsMounted] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus | undefined>>({});
 
   const generateSessionId = (date: string, time: string, courseName: string) => {
     return `${date}-${time}-${courseName}`.replace(/[^a-zA-Z0-9-]/g, '');
@@ -71,27 +71,55 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
 
   const handleAttendance = async (sessionId: string, date: string, time: string, course: string, status: AttendanceStatus) => {
     if (!user) return;
-    try {
-      await setDoc(doc(db, 'attendance', `${user.uid}_${sessionId}`), {
-        userId: user.uid,
-        sessionId,
-        date,
-        time,
-        courseName: course,
-        status,
-      });
-      setAttendance(prev => ({ ...prev, [sessionId]: status }));
-      toast({
-        title: 'Success',
-        description: `Attendance marked as ${status}.`,
-      });
-    } catch (error) {
-      console.error('Error updating attendance:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to update attendance.',
-      });
+
+    const docId = `${user.uid}_${sessionId}`;
+    const currentStatus = attendance[sessionId];
+
+    if (currentStatus === status) {
+      // If clicking the same status again, delete the record
+      try {
+        await deleteDoc(doc(db, 'attendance', docId));
+        setAttendance(prev => {
+          const newAttendance = { ...prev };
+          delete newAttendance[sessionId];
+          return newAttendance;
+        });
+        toast({
+          title: 'Success',
+          description: 'Attendance record removed.',
+        });
+      } catch (error) {
+        console.error('Error removing attendance:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to remove attendance.',
+        });
+      }
+    } else {
+      // Otherwise, set or update the record
+      try {
+        await setDoc(doc(db, 'attendance', docId), {
+          userId: user.uid,
+          sessionId,
+          date,
+          time,
+          courseName: course,
+          status,
+        });
+        setAttendance(prev => ({ ...prev, [sessionId]: status }));
+        toast({
+          title: 'Success',
+          description: `Attendance marked as ${status}.`,
+        });
+      } catch (error) {
+        console.error('Error updating attendance:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to update attendance.',
+        });
+      }
     }
   };
   
