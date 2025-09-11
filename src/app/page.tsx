@@ -4,12 +4,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { SheetIcon, GitBranchIcon, AlertCircle } from 'lucide-react';
+import { SheetIcon, GitBranchIcon } from 'lucide-react';
 import { TimetableDisplay } from '@/components/timetable-display';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { mockTimetableData } from '@/lib/mock-data';
 import type { SheetData } from '@/lib/types';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getSheetData, GetSheetDataOutput } from '@/ai/flows/get-sheet-data';
 
 export default function Home() {
@@ -81,13 +80,6 @@ export default function Home() {
                 {isLoading ? 'Syncing...' : 'Sync Timetable'}
               </Button>
             </form>
-            {error && (
-               <Alert variant="destructive" className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
           </CardContent>
         </Card>
 
