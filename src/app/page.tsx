@@ -10,13 +10,8 @@ import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import type { SheetData } from '@/lib/types';
 import { getSheetData, GetSheetDataOutput } from '@/ai/flows/get-sheet-data';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -48,9 +43,13 @@ export default function Home() {
   useEffect(() => {
     if (sheetData) {
       const courses = new Set<string>();
+      // Courses are in the body of the table (from the 3rd row onwards)
+      // and in columns from the 3rd one onwards (index 2).
       sheetData.slice(2).forEach(row => {
-        row.forEach(cell => {
+        row.slice(2).forEach(cell => {
+          // Remove trailing numbers and trim whitespace
           const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
+          // Add to set if it's a valid course name
           if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && isNaN(parseInt(courseName))) {
             courses.add(courseName);
           }
@@ -136,11 +135,11 @@ export default function Home() {
     }
   };
 
-  const handleCourseSelection = (course: string) => {
+  const handleCourseSelection = (course: string, checked: boolean) => {
     setSelectedCourses(prev =>
-      prev.includes(course)
-        ? prev.filter(c => c !== course)
-        : [...prev, course]
+      checked
+        ? [...prev, course]
+        : prev.filter(c => c !== course)
     );
   };
   
@@ -186,37 +185,43 @@ export default function Home() {
         {sheetData && (
           <Card className="mb-8 shadow-lg border-none">
             <CardHeader>
-              <CardTitle className="font-headline">Filter Courses</CardTitle>
-              <CardDescription>Select one or more courses to highlight them in the timetable.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-               <div className="flex items-center gap-4">
-                <Select onValueChange={handleCourseSelection}>
-                  <SelectTrigger className="w-full sm:w-[280px]">
-                    <SelectValue placeholder="Select a course to filter..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueCourses.map(course => (
-                      <SelectItem key={course} value={course} disabled={selectedCourses.includes(course)}>
-                        {course}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                 {selectedCourses.length > 0 && (
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="font-headline">Filter Courses</CardTitle>
+                  <CardDescription>Select one or more courses to highlight them in the timetable.</CardDescription>
+                </div>
+                {selectedCourses.length > 0 && (
                    <Button variant="ghost" onClick={clearSelection} className="text-sm">Clear Selection</Button>
                  )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                {selectedCourses.map(course => (
-                  <Badge key={course} variant="secondary" className="flex items-center gap-2">
-                    {course}
-                    <button onClick={() => handleCourseSelection(course)} className="appearance-none border-none bg-transparent p-0">
-                      <XIcon className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                    </button>
-                  </Badge>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {uniqueCourses.map(course => (
+                  <div key={course} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={course}
+                      checked={selectedCourses.includes(course)}
+                      onCheckedChange={(checked) => handleCourseSelection(course, !!checked)}
+                    />
+                    <Label htmlFor={course} className="cursor-pointer">{course}</Label>
+                  </div>
                 ))}
               </div>
+              
+              {selectedCourses.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  <span className="text-sm font-medium text-muted-foreground">Selected:</span>
+                  {selectedCourses.map(course => (
+                    <Badge key={course} variant="secondary" className="flex items-center gap-2">
+                      {course}
+                      <button onClick={() => handleCourseSelection(course, false)} className="appearance-none border-none bg-transparent p-0">
+                        <XIcon className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
