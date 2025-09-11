@@ -33,7 +33,7 @@ export default function Home() {
       const result: GetSheetDataOutput = await getSheetData({ 
         sheetUrl: sheetUrl,
       });
-      if (result.sheetData.length > 2) {
+      if (result.sheetData.length > 0) {
         setSheetData(result.sheetData);
       } else {
         setError('No data found in the sheet. Showing mock data instead.');
@@ -41,7 +41,7 @@ export default function Home() {
       }
     } catch (err: any) {
       console.error(err);
-      setError('Failed to fetch sheet data. Using mock data instead.');
+      setError(`Failed to fetch sheet data. Using mock data instead. Error: ${err.message}`);
       setSheetData(mockTimetableData);
     } finally {
       setIsLoading(false);
