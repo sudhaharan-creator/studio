@@ -13,6 +13,7 @@ import { useAppContext } from '@/context/app-context';
 import { useAuth } from '@/context/auth-context';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 
 export default function Home() {
   const [sheetUrl, setSheetUrl] = useState('');
@@ -26,7 +27,6 @@ export default function Home() {
 
   useEffect(() => {
     const fetchUserSheetUrl = async () => {
-      setIsFetchingPrefs(true);
       if (user) {
         const docRef = doc(db, 'userPreferences', user.uid);
         const docSnap = await getDoc(docRef);
@@ -35,20 +35,19 @@ export default function Home() {
           setSheetUrl(savedUrl);
           setIsUrlLocked(true);
         } else {
-          // This is a new user or a user without a saved URL.
           setSheetUrl('');
           setIsUrlLocked(false);
         }
       } else {
-        // Not logged in, clear any previous user's state
+        // Guest user: ensure everything is reset
         setSheetUrl('');
         setIsUrlLocked(false);
       }
       setIsFetchingPrefs(false);
     };
 
-    // Only run this if the initial auth check is complete.
     if (!authLoading) {
+      setIsFetchingPrefs(true);
       fetchUserSheetUrl();
     }
   }, [user, authLoading]);
@@ -70,9 +69,9 @@ export default function Home() {
       if (result.sheetData) {
         setSheetData(result.sheetData);
 
+        // Only save preferences if the user is authenticated
         if (user) {
           const docRef = doc(db, 'userPreferences', user.uid);
-          // Only lock the URL if it's a new one being set, or if it already exists.
           await setDoc(docRef, { sheetUrl: sheetUrl }, { merge: true });
           setIsUrlLocked(true);
         }

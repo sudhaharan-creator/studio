@@ -43,11 +43,12 @@ export default function ViewPage() {
     setUniqueCourses(Array.from(courses).sort());
 
     const fetchPreferences = async () => {
+      // Only fetch preferences for authenticated users
       if (user) {
         const docRef = doc(db, 'userPreferences', user.uid);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setSelectedCourses(docSnap.data().courses || []);
+        if (docSnap.exists() && docSnap.data().courses) {
+          setSelectedCourses(docSnap.data().courses);
         }
       }
       setIsLoading(false);
@@ -67,10 +68,11 @@ export default function ViewPage() {
   const handleViewTimetableClick = async () => {
     if (!sheetData) return;
 
+    // Only save preferences if the user is authenticated
     if (user) {
       try {
         const docRef = doc(db, 'userPreferences', user.uid);
-        await setDoc(docRef, { courses: selectedCourses });
+        await setDoc(docRef, { courses: selectedCourses }, { merge: true });
       } catch (error) {
         console.error("Error saving preferences: ", error);
         toast({
