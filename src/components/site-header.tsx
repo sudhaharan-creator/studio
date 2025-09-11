@@ -29,6 +29,12 @@ export function SiteHeader() {
           {user && (
             <nav className="flex gap-6">
               <Link
+                href="/view/timetable"
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Timetable
+              </Link>
+              <Link
                 href="/attendance"
                 className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >

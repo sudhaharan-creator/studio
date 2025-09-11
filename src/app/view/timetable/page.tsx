@@ -1,37 +1,105 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon } from 'lucide-react';
+import { ArrowLeftIcon, Loader2 } from 'lucide-react';
 import { TimetableDisplay } from '@/components/timetable-display';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { useAppContext } from '@/context/app-context';
 import type { SheetData } from '@/lib/types';
 import { TodayScheduleCards } from '@/components/today-schedule-cards';
+import { useAuth } from '@/context/auth-context';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function TimetablePage() {
-  const { filteredSheetData } = useAppContext();
+  const { sheetData, filteredSheetData, setFilteredSheetData, isSheetDataLoading } = useAppContext();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  
   const [view, setView] = useState<'full' | 'today'>('full');
   const [dailySchedule, setDailySchedule] = useState<SheetData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const applyFilter = useCallback((data: SheetData, courses: string[]) => {
+    if (courses.length > 0) {
+        const headerRows = data.slice(0, 2);
+        const bodyRows = data.slice(2);
+
+        const newFilteredData = bodyRows.map(row => {
+            const newRow = row.slice(0, 2); // Keep Date and Classroom No.
+            row.slice(2).forEach(cell => {
+                const courseName = cell.value.replace(/\s*\d+\s*$/, '').trim();
+                if (courses.includes(courseName)) {
+                    newRow.push(cell);
+                } else {
+                    newRow.push({ value: '' });
+                }
+            });
+            return newRow;
+        });
+        return [...headerRows, ...newFilteredData];
+    }
+    return data;
+  }, []);
 
   useEffect(() => {
-    // If there's no data, maybe the user refreshed the page. Send them back.
-    if (!filteredSheetData) {
-      router.replace('/view');
-    }
-  }, [filteredSheetData, router]);
+    const initializeTimetable = async () => {
+      // If data is already filtered, we're good.
+      if (filteredSheetData) {
+        setIsLoading(false);
+        return;
+      }
+      
+      // If there's no sheet data at all, user needs to go back.
+      if (!isSheetDataLoading && !sheetData) {
+        router.replace('/view');
+        return;
+      }
+
+      // If sheet data is loading, wait.
+      if (isSheetDataLoading || authLoading) {
+        return;
+      }
+
+      // If we have sheetData but no filteredData, create it.
+      if (sheetData && !filteredSheetData) {
+        if (user) {
+          const docRef = doc(db, 'userPreferences', user.uid);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists() && docSnap.data().courses) {
+            const savedCourses = docSnap.data().courses;
+            const autoFilteredData = applyFilter(sheetData, savedCourses);
+            setFilteredSheetData(autoFilteredData);
+          } else {
+            // No saved preferences, use full data
+            setFilteredSheetData(sheetData);
+          }
+        } else {
+          // Guest user, use full data
+          setFilteredSheetData(sheetData);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initializeTimetable();
+  }, [sheetData, filteredSheetData, isSheetDataLoading, authLoading, user, router, setFilteredSheetData, applyFilter]);
+
 
   const handleBack = () => {
-    router.back();
+    // Always go to /view which acts as the filter hub
+    router.push('/view');
   };
   
   const toggleView = () => {
-    if (view === 'full') {
-      if (!filteredSheetData) return;
+    const data = filteredSheetData;
+    if (!data) return;
 
+    if (view === 'full') {
       const today = new Date().toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -39,8 +107,8 @@ export default function TimetablePage() {
         day: 'numeric',
       });
       
-      const headerRows = filteredSheetData.slice(0, 2);
-      const todayRows = filteredSheetData.slice(2).filter(row => row[0].value === today);
+      const headerRows = data.slice(0, 2);
+      const todayRows = data.slice(2).filter(row => row[0].value === today);
       
       if (todayRows.length > 0) {
         setDailySchedule([...headerRows, ...todayRows]);
@@ -55,12 +123,23 @@ export default function TimetablePage() {
 
   const currentData = view === 'today' ? dailySchedule : filteredSheetData;
 
-  if (!filteredSheetData) {
+  if (isLoading || isSheetDataLoading || authLoading) {
     return (
         <div className="min-h-screen bg-background text-foreground font-body">
             <main className="container mx-auto p-4 sm:p-6 md:p-8">
             <TimetableSkeleton />
             </main>
+        </div>
+    );
+  }
+
+  if (!filteredSheetData) {
+     return (
+        <div className="min-h-screen bg-background text-foreground font-body flex items-center justify-center -mt-16">
+          <div className="text-center">
+            <p className="mb-4">Timetable data not found. You may need to sync your sheet first.</p>
+            <Button onClick={() => router.push('/')}>Go to Homepage</Button>
+          </div>
         </div>
     );
   }
