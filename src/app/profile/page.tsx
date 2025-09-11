@@ -87,8 +87,10 @@ export default function ProfilePage() {
       const courses = new Set<string>();
       sheetData.slice(2).forEach(row => {
         row.slice(2).forEach(cell => {
-          const courseName = cell.value.trim();
-          if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && !/^\s*$/.test(courseName)) {
+          const fullCourseText = cell.value.trim();
+          if (fullCourseText && !/^\(Lunch\)$/i.test(fullCourseText) && !/Registration/i.test(fullCourseText) && !/^\s*$/.test(fullCourseText)) {
+            const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
+            const courseName = match ? match[1].trim() : fullCourseText;
             courses.add(courseName);
           }
         });

@@ -31,8 +31,11 @@ export default function TimetablePage() {
         const newFilteredData = bodyRows.map(row => {
             const newRow = row.slice(0, 2); // Keep Date and Classroom No.
             row.slice(2).forEach(cell => {
-                const courseName = cell.value.trim();
-                if (courses.includes(courseName)) {
+                const fullCourseText = cell.value.trim();
+                const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
+                const courseName = match ? match[1].trim() : fullCourseText;
+
+                if (courses.includes(courseName) || (!match && courses.includes(fullCourseText))) {
                     newRow.push(cell);
                 } else {
                     newRow.push({ value: '' });

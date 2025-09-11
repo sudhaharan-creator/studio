@@ -170,13 +170,27 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                     if (user && cellIndex > 1 && cell.value.trim() !== '') {
                       const time = headerRows[1][cellIndex]?.value;
                       const fullCourseText = cell.value.trim();
-                      const courseNameMatch = fullCourseText.match(/^([a-zA-Z\s]+)/);
-                      const sessionNumberMatch = fullCourseText.match(/(\d+)$/);
                       
-                      const courseName = courseNameMatch ? courseNameMatch[1].trim() : fullCourseText;
-                      const sessionNumber = sessionNumberMatch ? parseInt(sessionNumberMatch[1], 10) : 0;
+                      const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
+
+                      if (!match) {
+                        return (
+                          <TableCell
+                            key={cellIndex}
+                            className={cn('text-center align-middle', className)}
+                            style={style}
+                            colSpan={colSpan}
+                            rowSpan={rowSpan}
+                          >
+                            {cell.value}
+                          </TableCell>
+                        );
+                      }
                       
-                      if (!courseName || sessionNumber === 0) {
+                      const courseName = match[1].trim();
+                      const sessionNumber = parseInt(match[2], 10);
+                      
+                      if (!courseName || isNaN(sessionNumber)) {
                         return (
                           <TableCell
                             key={cellIndex}

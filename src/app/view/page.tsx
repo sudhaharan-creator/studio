@@ -34,9 +34,10 @@ export default function ViewPage() {
     const courses = new Set<string>();
     sheetData.slice(2).forEach(row => {
       row.slice(2).forEach(cell => {
-        // Use the full cell value as the course identifier
-        const courseName = cell.value.trim();
-        if (courseName && !/^\(Lunch\)$/i.test(courseName) && !/Registration/i.test(courseName) && !/^\s*$/.test(courseName)) {
+        const fullCourseText = cell.value.trim();
+        if (fullCourseText && !/^\(Lunch\)$/i.test(fullCourseText) && !/Registration/i.test(fullCourseText) && !/^\s*$/.test(fullCourseText)) {
+          const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
+          const courseName = match ? match[1].trim() : fullCourseText;
           courses.add(courseName);
         }
       });
@@ -92,8 +93,11 @@ export default function ViewPage() {
         const newFilteredData = bodyRows.map(row => {
             const newRow = row.slice(0, 2); // Keep Date and Classroom No.
             row.slice(2).forEach(cell => {
-                const courseName = cell.value.trim();
-                if (selectedCourses.includes(courseName)) {
+                const fullCourseText = cell.value.trim();
+                const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
+                const courseName = match ? match[1].trim() : fullCourseText;
+
+                if (selectedCourses.includes(courseName) || (!match && selectedCourses.includes(fullCourseText))) {
                     newRow.push(cell);
                 } else {
                     newRow.push({ value: '' });
