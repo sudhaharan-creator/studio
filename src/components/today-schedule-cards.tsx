@@ -47,29 +47,31 @@ export function TodayScheduleCards({ data }: TodayScheduleCardsProps) {
   // Sort items by time
   scheduleItems.sort((a, b) => {
     const convertTo24Hour = (time: string) => {
-        if (!time || !time.includes(':')) {
-            return 9999; // Put invalid times at the end
-        }
-        const timePart = time.split('-')[0].trim();
-        let [hours, minutesPart] = timePart.split(':');
-        if (!minutesPart) {
-            return 9999;
-        }
-        let minutes = minutesPart.slice(0, 2);
-        const ampm = timePart.toLowerCase().includes('pm') ? 'pm' : 'am';
-        let hour = parseInt(hours, 10);
-        
-        if (isNaN(hour) || isNaN(parseInt(minutes, 10))) {
-            return 9999;
-        }
+      if (!time || !time.includes(':')) {
+        return 9999; // Put invalid times at the end
+      }
+      const timePart = time.split('-')[0].trim();
+      const parts = timePart.split(':');
+      if (parts.length < 2) {
+        return 9999;
+      }
+      let [hours, minutesPart] = parts;
+      
+      let minutes = (minutesPart.match(/\d+/) || ['0'])[0];
+      const ampm = timePart.toLowerCase().includes('pm') ? 'pm' : 'am';
+      let hour = parseInt(hours, 10);
 
-        if (ampm === 'pm' && hour < 12) {
-            hour += 12;
-        }
-        if (ampm === 'am' && hour === 12) {
-            hour = 0;
-        }
-        return hour * 60 + parseInt(minutes, 10);
+      if (isNaN(hour) || isNaN(parseInt(minutes, 10))) {
+        return 9999;
+      }
+
+      if (ampm === 'pm' && hour < 12) {
+        hour += 12;
+      }
+      if (ampm === 'am' && hour === 12) {
+        hour = 0; // Midnight case
+      }
+      return hour * 60 + parseInt(minutes, 10);
     };
 
     return convertTo24Hour(a.time) - convertTo24Hour(b.time);
