@@ -66,8 +66,7 @@ const getSheetDataFlow = ai.defineFlow(
     const details = getSheetDetails(input.sheetUrl);
     if (!details) {
       console.error('Invalid Google Sheet URL');
-      // Using mock data as a fallback for invalid URL for now.
-      return { sheetData: mockTimetableData };
+      throw new Error('Invalid Google Sheet URL.');
     }
 
     const { spreadsheetId } = details;
@@ -79,11 +78,27 @@ const getSheetDataFlow = ai.defineFlow(
     }
 
     try {
-      const sheetName = 'Sheet1'; 
-      const range = `${sheetName}!A1:Z1000`;
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+      // First, fetch spreadsheet metadata to get the sheet names
+      const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+      const metadataResponse = await fetch(metadataUrl);
+      const metadata = await metadataResponse.json();
+
+      if (!metadataResponse.ok) {
+        const errorMessage = metadata?.error?.message || `HTTP error! status: ${metadataResponse.status}`;
+        console.error('Failed to fetch sheet metadata:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      const firstSheetName = metadata.sheets?.[0]?.properties?.title;
+
+      if (!firstSheetName) {
+        throw new Error('No sheets found in the spreadsheet.');
+      }
       
-      const response = await fetch(url);
+      const range = `${firstSheetName}!A1:Z1000`;
+      const valuesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
+      
+      const response = await fetch(valuesUrl);
       const data = await response.json();
 
       if (!response.ok) {
