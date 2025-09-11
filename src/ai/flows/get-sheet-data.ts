@@ -66,6 +66,7 @@ const getSheetDataFlow = ai.defineFlow(
     const details = getSheetDetails(input.sheetUrl);
     if (!details) {
       console.error('Invalid Google Sheet URL');
+      // Using mock data as a fallback for invalid URL for now.
       return { sheetData: mockTimetableData };
     }
 
@@ -83,12 +84,14 @@ const getSheetDataFlow = ai.defineFlow(
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
       
       const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Failed to fetch from Google Sheets API:', errorData);
-        throw new Error(`API request failed: ${errorData.error.message}`);
-      }
       const data = await response.json();
+
+      if (!response.ok) {
+        const errorMessage = data?.error?.message || `HTTP error! status: ${response.status}`;
+        console.error('Failed to fetch from Google Sheets API:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
       const allRows = data.values || [];
 
       if (allRows.length === 0) {
@@ -97,6 +100,7 @@ const getSheetDataFlow = ai.defineFlow(
       
       const sheetData: SheetData = allRows.map((row: string[]) => {
         const fullRow = [...row];
+        // Ensure all rows have the same number of columns for table consistency
         const maxCols = Math.max(...allRows.map(r => r.length));
         while (fullRow.length < maxCols) {
             fullRow.push('');
@@ -106,8 +110,9 @@ const getSheetDataFlow = ai.defineFlow(
       
       return { sheetData };
     } catch (error: any) {
-      console.error('Error fetching or processing sheet data:', error);
-      throw new Error('Failed to retrieve or process sheet data.');
+      console.error('Error fetching or processing sheet data:', error.message);
+      // Re-throw the original error to be caught by the UI
+      throw error;
     }
   }
 );

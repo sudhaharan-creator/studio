@@ -52,8 +52,8 @@ export default function Home() {
       } else {
         toast({
           variant: 'destructive',
-          title: 'Error',
-          description: `Failed to fetch sheet data: ${err.message}`,
+          title: 'Error Fetching Data',
+          description: err.message,
         });
       }
     } finally {
