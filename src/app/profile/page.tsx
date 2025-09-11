@@ -4,13 +4,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, User as UserIcon, Settings, BookOpen, Palette, CheckIcon } from 'lucide-react';
+import { Loader2, User as UserIcon, Settings, BookOpen, Palette, CheckIcon, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -58,16 +59,14 @@ const colorPalettes = [
 
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, setUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(true);
-  const [sheetUrl, setSheetUrl] = useState('');
-  const [savedSheetUrl, setSavedSheetUrl] = useState('');
-  const [isEditingUrl, setIsEditingUrl] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [displayName, setDisplayName] = useState('');
   const [userCourses, setUserCourses] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [themeColors, setThemeColors] = useState({
     primary: '',
@@ -79,12 +78,11 @@ export default function ProfilePage() {
   const fetchPreferences = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
+    setDisplayName(user.displayName || user.email?.split('@')[0] || 'User');
     const docRef = doc(db, 'userPreferences', user.uid);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
-      setSheetUrl(data.sheetUrl || '');
-      setSavedSheetUrl(data.sheetUrl || '');
       setUserCourses(data.courses || []);
       setThemeColors({
         primary: data.theme?.primary || '',
@@ -105,34 +103,36 @@ export default function ProfilePage() {
     }
   }, [authLoading, user, router, fetchPreferences]);
 
-  const handleUpdateUrl = async () => {
-    if (!user) return;
+  const handleUpdateProfile = async () => {
+    if (!user || !auth.currentUser) return;
     setIsSubmitting(true);
     try {
-      const docRef = doc(db, 'userPreferences', user.uid);
-      await setDoc(docRef, { sheetUrl: sheetUrl }, { merge: true });
-      setSavedSheetUrl(sheetUrl);
-      setIsEditingUrl(false);
-      toast({ title: 'Success', description: 'Timetable URL updated.' });
+      await updateProfile(auth.currentUser, { displayName });
+      // Update user in context
+      setUser({ ...user, displayName });
+      toast({ title: 'Success', description: 'Your profile name has been updated.' });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update URL.' });
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile name.' });
     } finally {
       setIsSubmitting(false);
     }
   };
   
-  const handleRemoveUrl = async () => {
-    if (!user) return;
+  const handlePasswordReset = async () => {
+    if (!user?.email) return;
     setIsSubmitting(true);
     try {
-      const docRef = doc(db, 'userPreferences', user.uid);
-      await updateDoc(docRef, { sheetUrl: '' });
-      setSheetUrl('');
-      setSavedSheetUrl('');
-      setIsEditingUrl(false);
-      toast({ title: 'Success', description: 'Timetable URL removed.' });
+      await sendPasswordResetEmail(auth, user.email);
+      toast({
+        title: 'Password Reset Email Sent',
+        description: 'Check your inbox for a link to reset your password.',
+      });
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to remove URL.' });
+       toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to send password reset email.',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -191,40 +191,34 @@ export default function ProfilePage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>User Settings</CardTitle>
-                    <CardDescription>Manage your connected Google Sheet URL.</CardDescription>
+                    <CardDescription>Manage your account details.</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                       <label htmlFor="sheetUrl" className="text-sm font-medium">Google Sheet URL</label>
-                       <Input
-                        id="sheetUrl"
-                        type="text"
-                        placeholder="https://docs.google.com/spreadsheets/d/..."
-                        value={sheetUrl}
-                        onChange={(e) => setSheetUrl(e.target.value)}
-                        disabled={!isEditingUrl && !!savedSheetUrl}
-                      />
+                  <CardContent className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                         <Label htmlFor="displayName">Profile Name</Label>
+                         <Input
+                          id="displayName"
+                          type="text"
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <Button onClick={handleUpdateProfile} disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="animate-spin" /> : <> <UserIcon className="mr-2"/> Update Profile</>}
+                      </Button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {isEditingUrl || !savedSheetUrl ? (
-                         <>
-                          <Button onClick={handleUpdateUrl} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="animate-spin" /> : 'Save URL'}
-                          </Button>
-                          {savedSheetUrl && (
-                            <Button variant="outline" onClick={() => { setIsEditingUrl(false); setSheetUrl(savedSheetUrl); }}>
-                              Cancel
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <Button onClick={() => setIsEditingUrl(true)}>Change URL</Button>
-                      )}
-                      {savedSheetUrl && (
-                         <Button variant="destructive" onClick={handleRemoveUrl} disabled={isSubmitting}>
-                           {isSubmitting ? <Loader2 className="animate-spin" /> : 'Remove URL'}
-                         </Button>
-                      )}
+                    <div className="space-y-4 pt-4 border-t">
+                       <div className="space-y-2">
+                         <Label>Password</Label>
+                         <CardDescription>
+                           Click the button below to receive an email to reset your password.
+                         </CardDescription>
+                       </div>
+                       <Button variant="outline" onClick={handlePasswordReset} disabled={isSubmitting}>
+                         {isSubmitting ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2"/> Send Password Reset Email</>}
+                       </Button>
                     </div>
                   </CardContent>
                 </Card>

@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
 import { auth } from '@/lib/firebase';
-import { SheetIcon } from 'lucide-react';
+import { SheetIcon, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -44,6 +44,14 @@ export function SiteHeader() {
           )}
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
+          {user && (
+            <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground"/>
+                <span className="text-sm text-muted-foreground">
+                    Welcome, {user.displayName || user.email}
+                </span>
+            </div>
+          )}
           <nav className="flex items-center space-x-1">
             {user ? (
               <Button variant="ghost" onClick={handleLogout}>
