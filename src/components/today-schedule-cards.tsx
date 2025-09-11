@@ -46,9 +46,25 @@ export function TodayScheduleCards({ data }: TodayScheduleCardsProps) {
   
   // Sort items by time
   scheduleItems.sort((a, b) => {
-    const timeA = a.time.split(' ')[0];
-    const timeB = b.time.split(' ')[0];
-    return new Date(`1970/01/01 ${timeA}`) > new Date(`1970/01/01 ${timeB}`) ? 1 : -1;
+    const timeA = a.time.split('-')[0].trim();
+    const timeB = b.time.split('-')[0].trim();
+    
+    const convertTo24Hour = (time: string) => {
+        let [hours, minutesPart] = time.split(':');
+        let minutes = minutesPart.slice(0, 2);
+        const ampm = time.toLowerCase().includes('pm') ? 'pm' : 'am';
+        let hour = parseInt(hours, 10);
+        
+        if (ampm === 'pm' && hour < 12) {
+            hour += 12;
+        }
+        if (ampm === 'am' && hour === 12) {
+            hour = 0;
+        }
+        return hour * 60 + parseInt(minutes, 10);
+    };
+
+    return convertTo24Hour(timeA) - convertTo24Hour(timeB);
   });
 
   return (
