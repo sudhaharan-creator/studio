@@ -52,8 +52,8 @@ export default function Home() {
     }
   }, [user, authLoading]);
 
-  const handleFetchData = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFetchData = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!sheetUrl.trim().startsWith('https://docs.google.com/spreadsheets/d/')) {
       toast({
         variant: 'destructive',
@@ -76,7 +76,7 @@ export default function Home() {
           setIsUrlLocked(true);
         }
 
-        router.push('/view');
+        router.push('/view'); // Ensure navigation happens
       } else {
         toast({
           variant: 'destructive',
@@ -97,30 +97,8 @@ export default function Home() {
   };
   
   const handleResync = async () => {
-    // A simplified version of handleFetchData for re-syncing
-    setIsLoading(true);
-    try {
-      const result: GetSheetDataOutput = await getSheetData({ sheetUrl });
-      if (result.sheetData) {
-        setSheetData(result.sheetData);
-        router.push('/view');
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'No data found in the sheet.',
-        });
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast({
-        variant: 'destructive',
-        title: 'Error Fetching Data',
-        description: err.message || 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    // This function will now also call handleFetchData to ensure consistent behavior
+    await handleFetchData();
   };
 
   const handleRemoveUrl = async () => {
