@@ -1,14 +1,19 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import type { SheetData, CellStyle, CellData } from '@/lib/types';
+import type { SheetData, CellStyle, CellData, AttendanceStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
+import { Button } from './ui/button';
+import { db } from '@/lib/firebase';
+import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 interface TimetableDisplayProps {
   data: SheetData;
-  highlightedCourses?: string[];
 }
 
 const getCellProps = (
@@ -36,62 +41,72 @@ const getCellProps = (
   return { className: classNames.join(' '), style: inlineStyles, colSpan: cell.colSpan, rowSpan: cell.rowSpan };
 };
 
-const processDataForMerging = (data: SheetData): SheetData => {
-  if (!data || data.length <= 2) {
-    return data;
-  }
-  
-  const bodyRows = data.slice(2);
-  const processedBodyRows: CellData[][] = [];
-  
-  let i = 0;
-  while (i < bodyRows.length) {
-    const currentDate = bodyRows[i][0].value;
-    let rowSpan = 1;
-    let j = i + 1;
-    while (j < bodyRows.length && bodyRows[j][0].value === currentDate) {
-      rowSpan++;
-      j++;
-    }
-    
-    // First row of the merged group
-    const firstRowOfGroup = [...bodyRows[i]];
-    if (rowSpan > 1) {
-      firstRowOfGroup[0] = { ...firstRowOfGroup[0], rowSpan: rowSpan };
-    }
-    processedBodyRows.push(firstRowOfGroup);
-
-    // Subsequent rows of the merged group
-    for (let k = i + 1; k < i + rowSpan; k++) {
-      const subsequentRow = [...bodyRows[k]];
-      // Remove the date cell
-      processedBodyRows.push(subsequentRow.slice(1));
-    }
-    
-    i += rowSpan;
-  }
-
-  return [...data.slice(0, 2), ...processedBodyRows];
-};
-
-
 export function TimetableDisplay({ data }: TimetableDisplayProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const [processedData, setProcessedData] = useState<SheetData>([]);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
+
+  const generateSessionId = (date: string, time: string, courseName: string) => {
+    return `${date}-${time}-${courseName}`.replace(/[^a-zA-Z0-9-]/g, '');
+  };
+
+  const fetchAttendance = useCallback(async () => {
+    if (!user || !data) return;
+
+    const q = query(collection(db, 'attendance'), where('userId', '==', user.uid));
+    const querySnapshot = await getDocs(q);
+    const attendanceData: Record<string, AttendanceStatus> = {};
+    querySnapshot.forEach((doc) => {
+      const docData = doc.data();
+      attendanceData[docData.sessionId] = docData.status as AttendanceStatus;
+    });
+    setAttendance(attendanceData);
+  }, [user, data]);
 
   useEffect(() => {
     setIsMounted(true);
-    if(data) {
-        setProcessedData(processDataForMerging(data));
-    }
-  }, [data]);
+    fetchAttendance();
+  }, [data, fetchAttendance]);
 
-  if (!processedData || processedData.length === 0) {
+  const handleAttendance = async (sessionId: string, date: string, time: string, course: string, status: AttendanceStatus) => {
+    if (!user) return;
+    try {
+      await setDoc(doc(db, 'attendance', `${user.uid}_${sessionId}`), {
+        userId: user.uid,
+        sessionId,
+        date,
+        time,
+        courseName: course,
+        status,
+      });
+      setAttendance(prev => ({ ...prev, [sessionId]: status }));
+      toast({
+        title: 'Success',
+        description: `Attendance marked as ${status}.`,
+      });
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update attendance.',
+      });
+    }
+  };
+  
+  if (!data || data.length === 0) {
     return null;
   }
-
-  const headerRows = processedData.slice(0, 2);
-  const bodyRows = processedData.slice(2);
+  
+  const headerRows = data.slice(0, 2);
+  const bodyRows = data.slice(2);
+  
+  // Add Attendance header if user is logged in
+  if (user && headerRows.length > 1) {
+    headerRows[0].push({ value: 'Attendance', style: { bold: true, backgroundColor: '#d9ead3' } });
+    headerRows[1].push({ value: 'Mark', style: { bold: true } });
+  }
 
   return (
     <Card
@@ -124,26 +139,66 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
               ))}
             </TableHeader>
             <TableBody>
-              {bodyRows.map((row, rowIndex) => (
+              {bodyRows.map((row, rowIndex) => {
+                const date = row[0]?.value;
+                return (
                 <TableRow key={rowIndex} className="transition-colors">
                   {row.map((cell, cellIndex) => {
                     const { className, style, colSpan, rowSpan } = getCellProps(cell);
-                    // The first cell might have a rowSpan
-                    const isFirstCell = cellIndex === 0 && row.length === bodyRows[0].length;
+                    
+                    if (user && cellIndex > 1 && cell.value.trim() !== '') {
+                      const time = headerRows[1][cellIndex]?.value;
+                      const courseName = cell.value.trim();
+                      const sessionId = generateSessionId(date, time, courseName);
+                      const currentStatus = attendance[sessionId];
+
+                      return (
+                        <TableCell
+                          key={cellIndex}
+                          className={cn('text-center align-middle', className)}
+                          style={style}
+                          colSpan={colSpan}
+                          rowSpan={rowSpan}
+                        >
+                          <div className='flex flex-col items-center gap-2'>
+                            <span>{cell.value}</span>
+                            <div className='flex gap-1'>
+                              <Button
+                                size="sm"
+                                variant={currentStatus === 'present' ? 'default' : 'outline'}
+                                onClick={() => handleAttendance(sessionId, date, time, courseName, 'present')}
+                                className='h-6 px-2 text-xs'
+                              >
+                                P
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={currentStatus === 'absent' ? 'destructive' : 'outline'}
+                                onClick={() => handleAttendance(sessionId, date, time, courseName, 'absent')}
+                                className='h-6 px-2 text-xs'
+                              >
+                                A
+                              </Button>
+                            </div>
+                          </div>
+                        </TableCell>
+                      );
+                    }
+
                     return (
                       <TableCell
                         key={cellIndex}
                         className={cn('text-center align-middle', className)}
                         style={style}
                         colSpan={colSpan}
-                        rowSpan={isFirstCell ? rowSpan : undefined}
+                        rowSpan={rowSpan}
                       >
                         {cell.value}
                       </TableCell>
                     );
                   })}
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </div>
@@ -151,3 +206,4 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
     </Card>
   );
 }
+

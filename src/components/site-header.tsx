@@ -26,6 +26,16 @@ export function SiteHeader() {
             <SheetIcon className="h-6 w-6 text-primary" />
             <span className="inline-block font-bold">SheetSync</span>
           </Link>
+          {user && (
+            <nav className="flex gap-6">
+              <Link
+                href="/attendance"
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Attendance
+              </Link>
+            </nav>
+          )}
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-1">

@@ -1,3 +1,4 @@
+
 export type CellStyle = {
   bold?: boolean;
   italic?: boolean;
@@ -15,3 +16,15 @@ export type CellData = {
 };
 
 export type SheetData = CellData[][];
+
+export type AttendanceStatus = 'present' | 'absent';
+
+export type AttendanceRecord = {
+  id: string;
+  userId: string;
+  sessionId: string;
+  date: string;
+  time: string;
+  courseName: string;
+  status: AttendanceStatus;
+};
