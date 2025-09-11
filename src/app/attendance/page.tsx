@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
+import { Button } from '@/components/ui/button';
+import { ArrowLeftIcon } from 'lucide-react';
 
 export default function AttendancePage() {
   const { user, loading: authLoading } = useAuth();
@@ -68,7 +70,12 @@ export default function AttendancePage() {
       <main className="container mx-auto p-4 sm:p-6 md:p-8">
         <Card>
           <CardHeader>
-            <CardTitle>Attendance History</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>Attendance History</CardTitle>
+              <Button variant="outline" onClick={() => router.back()}>
+                <ArrowLeftIcon className="mr-2 h-4 w-4" /> Go Back
+              </Button>
+            </div>
             <CardDescription>
               Here is a complete record of your attendance.
             </CardDescription>
