@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import type { SheetData, CellStyle, CellData, AttendanceStatus } from '@/lib/types';
+import type { SheetData, CellStyle, AttendanceStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Button } from './ui/button';
@@ -51,6 +51,32 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
     return `${date}-${time}-${courseName}`.replace(/[^a-zA-Z0-9-]/g, '');
   };
 
+  // Memoize the session number calculation
+  const courseSessionMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const sessionNumbers = new Map<string, number>();
+
+    if (!data) return sessionNumbers;
+
+    data.slice(2).forEach((row, rowIndex) => {
+        row.slice(2).forEach((cell, cellIndex) => {
+            const courseName = cell.value.trim();
+            if (courseName && user) {
+                const date = row[0]?.value;
+                const time = data[1][cellIndex]?.value;
+                const sessionId = generateSessionId(date, time, courseName);
+                
+                const currentCount = map.get(courseName) || 0;
+                const newCount = currentCount + 1;
+                map.set(courseName, newCount);
+                sessionNumbers.set(sessionId, newCount);
+            }
+        });
+    });
+    return sessionNumbers;
+  }, [data, user]);
+
+
   const fetchAttendance = useCallback(async () => {
     if (!user || !data) return;
 
@@ -74,9 +100,9 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
 
     const docId = `${user.uid}_${sessionId}`;
     const currentStatus = attendance[sessionId];
+    const sessionNumber = courseSessionMap.get(sessionId) || 0;
 
     if (currentStatus === status) {
-      // If clicking the same status again, delete the record
       try {
         await deleteDoc(doc(db, 'attendance', docId));
         setAttendance(prev => {
@@ -97,7 +123,6 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
         });
       }
     } else {
-      // Otherwise, set or update the record
       try {
         await setDoc(doc(db, 'attendance', docId), {
           userId: user.uid,
@@ -106,6 +131,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
           time,
           courseName: course,
           status,
+          sessionNumber: sessionNumber,
         });
         setAttendance(prev => ({ ...prev, [sessionId]: status }));
         toast({

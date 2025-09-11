@@ -27,4 +27,5 @@ export type AttendanceRecord = {
   time: string;
   courseName: string;
   status: AttendanceStatus;
+  sessionNumber: number;
 };
