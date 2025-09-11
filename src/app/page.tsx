@@ -21,27 +21,31 @@ export default function Home() {
   const [isUrlLocked, setIsUrlLocked] = useState(false);
   const { toast } = useToast();
   const { setSheetData } = useAppContext();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     const fetchUserSheetUrl = async () => {
       if (user) {
-        setIsFetchingPrefs(true);
         const docRef = doc(db, 'userPreferences', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().sheetUrl) {
           const savedUrl = docSnap.data().sheetUrl;
           setSheetUrl(savedUrl);
           setIsUrlLocked(true);
+        } else {
+          setSheetUrl('');
+          setIsUrlLocked(false);
         }
-        setIsFetchingPrefs(false);
-      } else {
-        setIsFetchingPrefs(false);
       }
+      setIsFetchingPrefs(false);
     };
-    fetchUserSheetUrl();
-  }, [user]);
+
+    if (!authLoading) {
+      setIsFetchingPrefs(true);
+      fetchUserSheetUrl();
+    }
+  }, [user, authLoading]);
 
   const handleFetchData = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,7 +120,7 @@ export default function Home() {
   };
 
 
-  if (isFetchingPrefs) {
+  if (authLoading || isFetchingPrefs) {
     return (
       <div className="min-h-screen bg-background text-foreground font-body flex items-center justify-center -mt-16">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

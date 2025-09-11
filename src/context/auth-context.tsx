@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { TimetableSkeleton } from '@/components/timetable-skeleton';
+import { Loader2 } from 'lucide-react';
 
 interface AuthContextType {
   user: User | null;
@@ -42,10 +42,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   if (loading) {
     return (
-       <div className="min-h-screen bg-background text-foreground font-body">
-        <main className="container mx-auto p-4 sm:p-6 md:p-8">
-          <TimetableSkeleton />
-        </main>
+       <div className="min-h-screen bg-background text-foreground font-body flex items-center justify-center -mt-16">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
