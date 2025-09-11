@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -5,9 +6,17 @@ import { useAuth } from '@/context/auth-context';
 import { auth } from '@/lib/firebase';
 import { SheetIcon } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export function SiteHeader() {
   const { user, setAuthDialogOpen } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/');
+    router.refresh(); // Ensures a clean state on redirect
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
@@ -21,7 +30,7 @@ export function SiteHeader() {
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-1">
             {user ? (
-              <Button variant="ghost" onClick={() => auth.signOut()}>
+              <Button variant="ghost" onClick={handleLogout}>
                 Logout
               </Button>
             ) : (
