@@ -18,6 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function Home() {
   const [sheetUrl, setSheetUrl] = useState('');
@@ -71,20 +79,30 @@ export default function Home() {
     setSheetData(null);
     setSelectedCourses([]);
   
-    try {
-      if (!apiKey) {
-        const key = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '';
-        if (!key) {
-          setIsApiModalOpen(true);
-          setIsLoading(false);
-          return;
-        }
-        setApiKey(key);
+    let currentApiKey = apiKey;
+    if (!currentApiKey) {
+      const storedApiKey = localStorage.getItem('googleApiKey');
+      if (storedApiKey) {
+        setApiKey(storedApiKey);
+        currentApiKey = storedApiKey;
       }
+    }
+    
+    if (!currentApiKey && process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
+       currentApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+       setApiKey(currentApiKey);
+    }
+
+    if (!currentApiKey) {
+        setIsApiModalOpen(true);
+        setIsLoading(false);
+        return;
+    }
   
+    try {
       const result: GetSheetDataOutput = await getSheetData({
         sheetUrl: sheetUrl,
-        apiKey: apiKey as string,
+        apiKey: currentApiKey as string,
       });
       if (result.sheetData) {
         setSheetData(result.sheetData);
@@ -94,6 +112,7 @@ export default function Home() {
           title: 'Error',
           description: 'No data found in the sheet.',
         });
+        setSheetData(null);
       }
     } catch (err: any) {
       console.error(err);
@@ -102,6 +121,7 @@ export default function Home() {
         title: 'Error Fetching Data',
         description: err.message || 'An unexpected error occurred.',
       });
+      setSheetData(null);
     } finally {
       setIsLoading(false);
     }
@@ -127,13 +147,6 @@ export default function Home() {
   const clearSelection = () => {
     setSelectedCourses([]);
   };
-
-  const filteredData = useMemo(() => {
-    if (selectedCourses.length === 0) {
-      return sheetData;
-    }
-    return sheetData;
-  }, [sheetData, selectedCourses]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-body">
@@ -210,9 +223,28 @@ export default function Home() {
 
         <div className="transition-opacity duration-500">
           {isLoading && <TimetableSkeleton />}
-          {filteredData && <TimetableDisplay data={filteredData} highlightedCourses={selectedCourses} />}
+          {sheetData && <TimetableDisplay data={sheetData} highlightedCourses={selectedCourses} />}
         </div>
         
+        <Dialog open={isApiModalOpen} onOpenChange={setIsApiModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Google API Key Required</DialogTitle>
+              <DialogDescription>
+                Please provide your Google API key to fetch data from Google Sheets. You can get one from the Google Cloud Console.
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              type="text"
+              placeholder="Enter your API key"
+              value={tempApiKey}
+              onChange={(e) => setTempApiKey(e.target.value)}
+            />
+            <DialogFooter>
+              <Button onClick={handleApiKeySubmit}>Submit</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
