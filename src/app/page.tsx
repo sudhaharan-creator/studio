@@ -26,6 +26,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchUserSheetUrl = async () => {
+      setIsFetchingPrefs(true);
       if (user) {
         const docRef = doc(db, 'userPreferences', user.uid);
         const docSnap = await getDoc(docRef);
@@ -43,11 +44,11 @@ export default function Home() {
         setSheetUrl('');
         setIsUrlLocked(false);
       }
-      setIsFetchingPrefs(false); // This should be called in all paths
+      setIsFetchingPrefs(false);
     };
 
+    // Only run this if the initial auth check is complete.
     if (!authLoading) {
-      setIsFetchingPrefs(true);
       fetchUserSheetUrl();
     }
   }, [user, authLoading]);
