@@ -13,34 +13,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 
 export default function Home() {
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetData, setSheetData] = useState<SheetData | null>(null);
   const [filteredSheetData, setFilteredSheetData] = useState<SheetData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const { toast } = useToast();
   const [uniqueCourses, setUniqueCourses] = useState<string[]>([]);
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
-  const [tempApiKey, setTempApiKey] = useState('');
 
-  useEffect(() => {
-    const storedApiKey = localStorage.getItem('googleApiKey');
-    if (storedApiKey) {
-      setApiKey(storedApiKey);
-    }
-  }, []);
-  
   useEffect(() => {
     if (sheetData) {
       const courses = new Set<string>();
@@ -83,30 +65,9 @@ export default function Home() {
     setFilteredSheetData(null);
     setSelectedCourses([]);
   
-    let currentApiKey = apiKey;
-    if (!currentApiKey) {
-      const storedApiKey = localStorage.getItem('googleApiKey');
-      if (storedApiKey) {
-        setApiKey(storedApiKey);
-        currentApiKey = storedApiKey;
-      }
-    }
-    
-    if (!currentApiKey && process.env.NEXT_PUBLIC_GOOGLE_API_KEY) {
-       currentApiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
-       setApiKey(currentApiKey);
-    }
-
-    if (!currentApiKey) {
-        setIsApiModalOpen(true);
-        setIsLoading(false);
-        return;
-    }
-  
     try {
       const result: GetSheetDataOutput = await getSheetData({
         sheetUrl: sheetUrl,
-        apiKey: currentApiKey as string,
       });
       if (result.sheetData) {
         setSheetData(result.sheetData);
@@ -128,15 +89,6 @@ export default function Home() {
       setSheetData(null);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleApiKeySubmit = () => {
-    if (tempApiKey) {
-      setApiKey(tempApiKey);
-      localStorage.setItem('googleApiKey', tempApiKey);
-      setIsApiModalOpen(false);
-      fetchData();
     }
   };
 
@@ -271,25 +223,6 @@ export default function Home() {
           {filteredSheetData && <TimetableDisplay data={filteredSheetData} />}
         </div>
         
-        <Dialog open={isApiModalOpen} onOpenChange={setIsApiModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Google API Key Required</DialogTitle>
-              <DialogDescription>
-                Please provide your Google API key to fetch data from Google Sheets. You can get one from the Google Cloud Console.
-              </DialogDescription>
-            </DialogHeader>
-            <Input
-              type="text"
-              placeholder="Enter your API key"
-              value={tempApiKey}
-              onChange={(e) => setTempApiKey(e.target.value)}
-            />
-            <DialogFooter>
-              <Button onClick={handleApiKeySubmit}>Submit</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </main>
     </div>
   );
