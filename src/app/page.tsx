@@ -95,11 +95,6 @@ export default function Home() {
       setIsLoading(false);
     }
   };
-  
-  const handleResync = async () => {
-    // This function will now also call handleFetchData to ensure consistent behavior
-    await handleFetchData();
-  };
 
   const handleRemoveUrl = async () => {
     if (!user) return;
@@ -145,10 +140,10 @@ export default function Home() {
         <Card className="shadow-lg border-none">
           <CardHeader>
             <CardTitle className="font-headline">
-              {isUrlLocked && user ? 'Your Connected Timetable' : 'Connect your Google Sheet'}
+              {user && isUrlLocked ? 'Your Connected Timetable' : 'Connect your Google Sheet'}
             </CardTitle>
             <CardDescription>
-              {isUrlLocked && user
+              {user && isUrlLocked
                 ? 'Sync your saved timetable or manage your sheet URL.'
                 : 'Enter the URL of your Google Sheet to display the timetable.'
               }
@@ -166,22 +161,31 @@ export default function Home() {
                       onChange={(e) => setSheetUrl(e.target.value)}
                       className="pl-10"
                       aria-label="Google Sheet URL"
-                      disabled={isLoading || (isUrlLocked && user)}
+                      disabled={isLoading || (user && isUrlLocked)}
                     />
                   </div>
                   
-                  {!isUrlLocked && (
-                    <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-                        {isLoading ? 'Syncing...' : 'Sync Timetable'}
+                  {!(user && isUrlLocked) && (
+                    <Button type="submit" disabled={isLoading || !sheetUrl.trim()} className="w-full sm:w-auto">
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Syncing...
+                            </>
+                        ) : 'Sync Timetable'}
                     </Button>
                   )}
                 </form>
 
-              <div className="flex flex-col sm:flex-row gap-2">
-                {user && isUrlLocked && (
-                  <>
-                    <Button onClick={handleResync} disabled={isLoading} className="w-full sm:w-auto">
-                      {isLoading ? 'Syncing...' : 'Sync Timetable'}
+              {user && isUrlLocked && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <Button onClick={handleFetchData} disabled={isLoading} className="w-full sm:w-auto">
+                      {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Syncing...
+                            </>
+                        ) : 'Sync Timetable'}
                     </Button>
                     <Button variant="outline" onClick={handleChangeUrl} disabled={isLoading} className="w-full sm:w-auto">
                       Change URL
@@ -189,9 +193,8 @@ export default function Home() {
                     <Button variant="destructive" onClick={handleRemoveUrl} disabled={isLoading} className="w-full sm:w-auto">
                       Remove
                     </Button>
-                  </>
+                  </div>
                 )}
-              </div>
             </div>
           </CardContent>
         </Card>
