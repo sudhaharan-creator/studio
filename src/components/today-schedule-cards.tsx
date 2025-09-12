@@ -87,7 +87,7 @@ export function TodayScheduleCards({ data }: TodayScheduleCardsProps) {
   });
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {scheduleItems.map((item, index) => (
         <Card key={index} className="shadow-lg border-none">
           <CardHeader>

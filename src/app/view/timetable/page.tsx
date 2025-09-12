@@ -128,18 +128,16 @@ export default function TimetablePage() {
 
   if (isLoading || isSheetDataLoading || authLoading) {
     return (
-        <div className="min-h-screen bg-background text-foreground font-body">
-            <main className="container mx-auto p-4 sm:p-6 md:p-8">
+        <div className="container mx-auto p-4 sm:p-6 md:p-8">
             <TimetableSkeleton />
-            </main>
         </div>
     );
   }
 
   if (!filteredSheetData) {
      return (
-        <div className="min-h-screen bg-background text-foreground font-body flex items-center justify-center -mt-16">
-          <div className="text-center">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center p-4">
             <p className="mb-4">Timetable data not found. You may need to sync your sheet first.</p>
             <Button onClick={() => router.push('/')}>Go to Homepage</Button>
           </div>
@@ -148,33 +146,31 @@ export default function TimetablePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-body">
-      <main className="container mx-auto p-4 sm:p-6 md:p-8">
-        <header className="flex items-center justify-between gap-3 mb-8">
-            <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200">
-              {view === 'today' ? "Today's Schedule" : 'Your Timetable'}
-            </h1>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={toggleView}>
-                {view === 'full' ? "Show Today's Schedule" : 'Show Full Timetable'}
-              </Button>
-              <Button variant="outline" onClick={handleBack}><ArrowLeftIcon /> Back to Filters</Button>
-            </div>
-        </header>
+    <div className="container mx-auto p-4 sm:p-6 md:p-8">
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-8">
+          <h1 className="text-3xl font-bold font-headline text-slate-800 dark:text-slate-200 text-center sm:text-left">
+            {view === 'today' ? "Today's Schedule" : 'Your Timetable'}
+          </h1>
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2">
+            <Button variant="outline" onClick={toggleView}>
+              {view === 'full' ? "Show Today's Schedule" : 'Show Full Timetable'}
+            </Button>
+            <Button variant="outline" onClick={handleBack}><ArrowLeftIcon /> Back to Filters</Button>
+          </div>
+      </header>
 
-        <div className="transition-opacity duration-500">
-          {view === 'today' ? (
-            dailySchedule && dailySchedule.length > 2 ? (
-              <TodayScheduleCards data={dailySchedule} />
-            ) : (
-              <p>No classes scheduled for today.</p>
-            )
+      <div className="transition-opacity duration-500">
+        {view === 'today' ? (
+          dailySchedule && dailySchedule.length > 2 ? (
+            <TodayScheduleCards data={dailySchedule} />
           ) : (
-            currentData && <TimetableDisplay data={currentData} />
-          )}
-        </div>
-        
-      </main>
+            <p>No classes scheduled for today.</p>
+          )
+        ) : (
+          currentData && <TimetableDisplay data={currentData} />
+        )}
+      </div>
+      
     </div>
   );
 }

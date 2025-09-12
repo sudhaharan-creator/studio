@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const colorPalettes = [
-  {
+    {
     name: 'Default Light',
     primary: '180 100% 25.1%',
     background: '0 0% 94.1%',
@@ -315,247 +315,240 @@ export default function ProfilePage() {
 
   if (isLoading || authLoading) {
     return (
-      <div className="min-h-screen bg-background text-foreground font-body">
-        <main className="container mx-auto p-4 sm:p-6 md:p-8">
+        <div className="container mx-auto p-4 sm:p-6 md:p-8">
           <TimetableSkeleton />
-        </main>
-      </div>
+        </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-body">
-      <main className="container mx-auto p-4 sm:p-6 md:p-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline text-3xl">My Profile</CardTitle>
-            <CardDescription>Manage your settings, courses, and personal information.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="settings" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="settings"><Settings className="mr-2"/> Settings</TabsTrigger>
-                <TabsTrigger value="my-courses"><BookOpen className="mr-2"/> My Courses</TabsTrigger>
-                <TabsTrigger value="preferences"><Palette className="mr-2"/> Preferences</TabsTrigger>
-              </TabsList>
-              <TabsContent value="settings" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Settings</CardTitle>
-                    <CardDescription>Manage your account details.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        <div className="relative h-20 w-20">
-                          <Image
-                            src={profilePic || `https://avatar.vercel.sh/${user?.uid}.png`}
-                            alt="Profile Picture"
-                            width={80}
-                            height={80}
-                            className="rounded-full object-cover"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Profile Picture</Label>
-                            <Input 
-                                type="file" 
-                                className="hidden"
-                                ref={profilePicInputRef}
-                                onChange={(e) => handleImageUpload(e, 'profile')}
-                                accept="image/png, image/jpeg, image/gif"
-                            />
-                            <Button size="sm" variant="outline" onClick={() => profilePicInputRef.current?.click()} disabled={isSubmitting}>
-                                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Change Picture'}
-                            </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                         <Label htmlFor="displayName">Profile Name</Label>
-                         <Input
-                          id="displayName"
-                          type="text"
-                          value={displayName}
-                          onChange={(e) => setDisplayName(e.target.value)}
-                          disabled={isSubmitting}
+    <div className="container mx-auto p-4 sm:p-6 md:p-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-headline text-3xl">My Profile</CardTitle>
+          <CardDescription>Manage your settings, courses, and personal information.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="settings" className="w-full">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
+              <TabsTrigger value="settings"><Settings className="mr-2"/> Settings</TabsTrigger>
+              <TabsTrigger value="my-courses"><BookOpen className="mr-2"/> My Courses</TabsTrigger>
+              <TabsTrigger value="preferences"><Palette className="mr-2"/> Preferences</TabsTrigger>
+            </TabsList>
+            <TabsContent value="settings" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>User Settings</CardTitle>
+                  <CardDescription>Manage your account details.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div className="relative h-20 w-20">
+                        <Image
+                          src={profilePic || `https://avatar.vercel.sh/${user?.uid}.png`}
+                          alt="Profile Picture"
+                          width={80}
+                          height={80}
+                          className="rounded-full object-cover"
                         />
                       </div>
-                      <Button onClick={handleUpdateProfile} disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="animate-spin" /> : <> <UserIcon className="mr-2"/> Update Profile</>}
-                      </Button>
+                      <div className="space-y-2 text-center sm:text-left">
+                          <Label>Profile Picture</Label>
+                          <Input 
+                              type="file" 
+                              className="hidden"
+                              ref={profilePicInputRef}
+                              onChange={(e) => handleImageUpload(e, 'profile')}
+                              accept="image/png, image/jpeg, image/gif"
+                          />
+                          <Button size="sm" variant="outline" onClick={() => profilePicInputRef.current?.click()} disabled={isSubmitting}>
+                              {isSubmitting ? <Loader2 className="animate-spin" /> : 'Change Picture'}
+                          </Button>
+                      </div>
                     </div>
-                    <div className="space-y-4 pt-4 border-t">
-                       <div className="space-y-2">
-                         <Label>Password</Label>
-                         <CardDescription>
-                           Click the button below to receive an email to reset your password.
-                         </CardDescription>
-                       </div>
-                       <Button variant="outline" onClick={handlePasswordReset} disabled={isSubmitting}>
-                         {isSubmitting ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2"/> Send Password Reset Email</>}
-                       </Button>
+
+                    <div className="space-y-2">
+                       <Label htmlFor="displayName">Profile Name</Label>
+                       <Input
+                        id="displayName"
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        disabled={isSubmitting}
+                      />
                     </div>
-                    <div className="space-y-4 pt-4 border-t border-destructive/50">
-                       <div className="space-y-2">
-                         <Label className="text-destructive">Danger Zone</Label>
-                         <CardDescription>
-                           Permanently delete your account and all associated data. This action is irreversible.
-                         </CardDescription>
-                       </div>
-                       <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" disabled={isSubmitting}>
-                              <Trash2Icon className="mr-2"/> Delete Account
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete your account
-                                and remove your data from our servers.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={handleDeleteAccount} className={cn(buttonVariants({variant: "destructive"}))}>
-                                {isSubmitting ? <Loader2 className="animate-spin" /> : "Yes, delete my account"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="my-courses" className="mt-6">
-                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>My Courses</CardTitle>
-                      <CardDescription>
-                        {isEditingCourses 
-                          ? 'Select your default courses to display on the timetable.'
-                          : 'Here are your saved courses. Click Edit to make changes.'}
-                      </CardDescription>
-                    </div>
-                     {!isEditingCourses && (
-                      <Button variant="outline" onClick={handleEditCourses}>Edit Courses</Button>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    {isEditingCourses ? (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                          {uniqueCourses.map(course => (
-                            <div key={course} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`profile-${course}`}
-                                checked={tempSelectedCourses.includes(course)}
-                                onCheckedChange={(checked) => handleCourseSelection(course, !!checked)}
-                              />
-                              <Label htmlFor={`profile-${course}`} className="cursor-pointer">{course}</Label>
-                            </div>
+                    <Button onClick={handleUpdateProfile} disabled={isSubmitting}>
+                      {isSubmitting ? <Loader2 className="animate-spin" /> : <> <UserIcon className="mr-2"/> Update Profile</>}
+                    </Button>
+                  </div>
+                  <div className="space-y-4 pt-4 border-t">
+                     <div className="space-y-2">
+                       <Label>Password</Label>
+                       <CardDescription>
+                         Click the button below to receive an email to reset your password.
+                       </CardDescription>
+                     </div>
+                     <Button variant="outline" onClick={handlePasswordReset} disabled={isSubmitting}>
+                       {isSubmitting ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2"/> Send Password Reset Email</>}
+                     </Button>
+                  </div>
+                  <div className="space-y-4 pt-4 border-t border-destructive/50">
+                     <div className="space-y-2">
+                       <Label className="text-destructive">Danger Zone</Label>
+                       <CardDescription>
+                         Permanently delete your account and all associated data. This action is irreversible.
+                       </CardDescription>
+                     </div>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" disabled={isSubmitting}>
+                            <Trash2Icon className="mr-2"/> Delete Account
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete your account
+                              and remove your data from our servers.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDeleteAccount} className={cn(buttonVariants({variant: "destructive"}))}>
+                              {isSubmitting ? <Loader2 className="animate-spin" /> : "Yes, delete my account"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="my-courses" className="mt-6">
+               <Card>
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div>
+                    <CardTitle>My Courses</CardTitle>
+                    <CardDescription>
+                      {isEditingCourses 
+                        ? 'Select your default courses to display on the timetable.'
+                        : 'Here are your saved courses. Click Edit to make changes.'}
+                    </CardDescription>
+                  </div>
+                   {!isEditingCourses && (
+                    <Button variant="outline" onClick={handleEditCourses} className="w-full sm:w-auto">Edit Courses</Button>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {isEditingCourses ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {uniqueCourses.map(course => (
+                          <div key={course} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`profile-${course}`}
+                              checked={tempSelectedCourses.includes(course)}
+                              onCheckedChange={(checked) => handleCourseSelection(course, !!checked)}
+                            />
+                            <Label htmlFor={`profile-${course}`} className="cursor-pointer">{course}</Label>
+                          </div>
+                        ))}
+                      </div>
+                      {tempSelectedCourses.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
+                          <span className="text-sm font-medium text-muted-foreground">Selected:</span>
+                          {tempSelectedCourses.map(course => (
+                            <Badge key={course} variant="secondary" className="flex items-center gap-2">
+                              {course}
+                              <button onClick={() => handleCourseSelection(course, false)} className="appearance-none border-none bg-transparent p-0">
+                                <XIcon className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                              </button>
+                            </Badge>
                           ))}
                         </div>
-                        {tempSelectedCourses.length > 0 && (
-                          <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
-                            <span className="text-sm font-medium text-muted-foreground">Selected:</span>
-                            {tempSelectedCourses.map(course => (
-                              <Badge key={course} variant="secondary" className="flex items-center gap-2">
-                                {course}
-                                <button onClick={() => handleCourseSelection(course, false)} className="appearance-none border-none bg-transparent p-0">
-                                  <XIcon className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                </button>
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex gap-2 pt-4 border-t mt-4">
-                           <Button onClick={handleSaveCourses} disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="animate-spin" /> : 'Save Courses'}
-                           </Button>
-                           <Button variant="ghost" onClick={handleCancelEdit} disabled={isSubmitting}>Cancel</Button>
-                        </div>
+                      )}
+                      <div className="flex gap-2 pt-4 border-t mt-4">
+                         <Button onClick={handleSaveCourses} disabled={isSubmitting}>
+                          {isSubmitting ? <Loader2 className="animate-spin" /> : 'Save Courses'}
+                         </Button>
+                         <Button variant="ghost" onClick={handleCancelEdit} disabled={isSubmitting}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    userCourses.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {userCourses.map(course => (
+                          <Badge key={course} variant="secondary">{course}</Badge>
+                        ))}
                       </div>
                     ) : (
-                      userCourses.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {userCourses.map(course => (
-                            <Badge key={course} variant="secondary">{course}</Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">You have not selected any courses yet. Click "Edit" to add your courses.</p>
-                      )
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="preferences" className="mt-6">
-                 <Card>
-                  <CardHeader>
-                    <CardTitle>Theme Preferences</CardTitle>
-                    <CardDescription>Customize the look and feel of the application. Select a palette and save.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                     <div className="space-y-2">
-                          <Label>Background Image</Label>
-                           <Input 
-                                type="file" 
-                                className="hidden"
-                                ref={backgroundInputRef}
-                                onChange={(e) => handleImageUpload(e, 'background')}
-                                accept="image/png, image/jpeg, image/gif"
-                            />
-                           <Button size="sm" variant="outline" onClick={() => backgroundInputru.current?.click()} disabled={isSubmitting}>
-                                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Upload Background'}
-                           </Button>
-                      </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {colorPalettes.map((palette) => {
-                        const isActive =
-                          themeColors.primary === palette.primary &&
-                          themeColors.background === palette.background &&
-                          themeColors.accent === palette.accent;
-                        
-                        return (
-                          <div key={palette.name} onClick={() => handleThemeSelect(palette)} className="cursor-pointer">
-                            <div
-                              className={cn(
-                                "rounded-lg border-2 p-2 transition-all",
-                                isActive ? "border-primary" : "border-transparent hover:border-muted-foreground"
-                              )}
-                            >
-                              <div className="space-y-1 rounded-md p-2" style={{ backgroundColor: `hsl(${palette.background})`}}>
-                                <div className="flex items-center justify-between">
-                                  <p className="text-xs font-semibold" style={{ color: `hsl(${palette.primary})`}}>{palette.name}</p>
-                                  {isActive && <CheckIcon className="h-4 w-4" style={{ color: `hsl(${palette.primary})`}} />}
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <div className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${palette.primary})` }} />
-                                  <div className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${palette.accent})` }} />
-                                </div>
+                      <p className="text-sm text-muted-foreground">You have not selected any courses yet. Click "Edit" to add your courses.</p>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="preferences" className="mt-6">
+               <Card>
+                <CardHeader>
+                  <CardTitle>Theme Preferences</CardTitle>
+                  <CardDescription>Customize the look and feel of the application. Select a palette and save.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                   <div className="space-y-2">
+                        <Label>Background Image</Label>
+                         <Input 
+                              type="file" 
+                              className="hidden"
+                              ref={backgroundInputRef}
+                              onChange={(e) => handleImageUpload(e, 'background')}
+                              accept="image/png, image/jpeg, image/gif"
+                          />
+                         <Button size="sm" variant="outline" onClick={() => backgroundInputRef.current?.click()} disabled={isSubmitting}>
+                              {isSubmitting ? <Loader2 className="animate-spin" /> : 'Upload Background'}
+                         </Button>
+                    </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {colorPalettes.map((palette) => {
+                      const isActive =
+                        themeColors.primary === palette.primary &&
+                        themeColors.background === palette.background &&
+                        themeColors.accent === palette.accent;
+                      
+                      return (
+                        <div key={palette.name} onClick={() => handleThemeSelect(palette)} className="cursor-pointer">
+                          <div
+                            className={cn(
+                              "rounded-lg border-2 p-2 transition-all",
+                              isActive ? "border-primary" : "border-transparent hover:border-muted-foreground"
+                            )}
+                          >
+                            <div className="space-y-1 rounded-md p-2" style={{ backgroundColor: `hsl(${palette.background})`}}>
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold" style={{ color: `hsl(${palette.primary})`}}>{palette.name}</p>
+                                {isActive && <CheckIcon className="h-4 w-4" style={{ color: `hsl(${palette.primary})`}} />}
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${palette.primary})` }} />
+                                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: `hsl(${palette.accent})` }} />
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                    <Button onClick={handleSaveTheme} disabled={isSubmittingTheme}>
-                      {isSubmittingTheme ? <Loader2 className="animate-spin" /> : 'Save Theme'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </main>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Button onClick={handleSaveTheme} disabled={isSubmittingTheme}>
+                    {isSubmittingTheme ? <Loader2 className="animate-spin" /> : 'Save Theme'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-    
-
-    

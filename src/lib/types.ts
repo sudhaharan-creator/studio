@@ -30,9 +30,10 @@ export type AttendanceRecord = {
   sessionNumber: number;
 };
 
-// Extends Firebase User type to include displayName
+// Extends Firebase User type to include displayName and photoURL
 export interface User {
   uid: string;
   email: string | null;
   displayName: string | null;
+  photoURL?: string | null;
 }

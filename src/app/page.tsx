@@ -128,15 +128,15 @@ export default function Home() {
 
   if (authLoading || isFetchingPrefs) {
     return (
-      <div className="min-h-screen bg-background text-foreground font-body flex items-center justify-center -mt-16">
+      <div className="flex-1 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-body flex items-center justify-center -mt-16">
-      <main className="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
+    <div className="flex-1 flex items-center justify-center p-4">
+      <main className="w-full max-w-2xl">
         <Card className="shadow-lg border-none">
           <CardHeader>
             <CardTitle className="font-headline">
@@ -151,7 +151,7 @@ export default function Home() {
           </CardHeader>
           <CardContent>
              <div className="flex flex-col gap-4">
-                <form onSubmit={handleFetchData} className="flex flex-col gap-4">
+                <form onSubmit={handleFetchData} className="flex flex-col sm:flex-row gap-4">
                   <div className="relative flex-grow w-full">
                     <GitBranchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
@@ -179,7 +179,7 @@ export default function Home() {
 
               {user && isUrlLocked && (
                 <div className="flex flex-col sm:flex-row gap-2">
-                    <Button onClick={handleFetchData} disabled={isLoading} className="w-full sm:w-auto">
+                    <Button onClick={handleFetchData} disabled={isLoading} className="w-full sm:flex-1">
                       {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
