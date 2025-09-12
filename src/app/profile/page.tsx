@@ -7,7 +7,6 @@ import { useAuth } from '@/context/auth-context';
 import { db, auth, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { updateProfile, sendPasswordResetEmail, deleteUser as deleteFirebaseUser } from 'firebase/auth';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -93,9 +92,6 @@ export default function ProfilePage() {
   const [isEditingCourses, setIsEditingCourses] = useState(false);
   const [tempSelectedCourses, setTempSelectedCourses] = useState<string[]>([]);
   const [uniqueCourses, setUniqueCourses] = useState<string[]>([]);
-
-  const backgroundInputRef = useRef<HTMLInputElement>(null);
-
 
   useEffect(() => {
     if (sheetData) {
@@ -236,31 +232,6 @@ export default function ProfilePage() {
        toast({ variant: 'destructive', title: 'Error', description: 'Failed to save courses.' });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !event.target.files || event.target.files.length === 0) return;
-    const file = event.target.files[0];
-    const storagePath = `backgroundImages/${user.uid}/${file.name}`;
-    const storageRef = ref(storage, storagePath);
-
-    setIsSubmitting(true);
-    try {
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
-
-        const prefKey = 'backgroundURL';
-        const userPrefRef = doc(db, 'userPreferences', user.uid);
-        await setDoc(userPrefRef, { [prefKey]: downloadURL }, { merge: true });
-        
-        toast({ title: 'Success', description: 'Background image updated.' });
-        window.location.reload(); // Force reload to apply changes globally
-    } catch (error) {
-        console.error('Error uploading image:', error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to upload image.' });
-    } finally {
-        setIsSubmitting(false);
     }
   };
 
@@ -455,19 +426,6 @@ export default function ProfilePage() {
                   <CardDescription>Customize the look and feel of the application. Select a palette and save.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                   <div className="space-y-2">
-                        <Label>Background Image</Label>
-                         <Input 
-                              type="file" 
-                              className="hidden"
-                              ref={backgroundInputRef}
-                              onChange={handleImageUpload}
-                              accept="image/png, image/jpeg, image/gif"
-                          />
-                         <Button size="sm" variant="outline" onClick={() => backgroundInputRef.current?.click()} disabled={isSubmitting}>
-                              {isSubmitting ? <Loader2 className="animate-spin" /> : 'Upload Background'}
-                         </Button>
-                    </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {colorPalettes.map((palette) => {
                       const isActive =
