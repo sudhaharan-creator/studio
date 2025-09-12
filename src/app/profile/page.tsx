@@ -11,7 +11,7 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, User as UserIcon, Settings, BookOpen, Palette, CheckIcon, KeyRound, XIcon, Trash2Icon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -131,12 +131,14 @@ export default function ProfilePage() {
       const savedCourses = data.courses || [];
       setUserCourses(savedCourses);
       setTempSelectedCourses(savedCourses);
-      setProfilePic(data.photoURL || null);
+      setProfilePic(data.photoURL || user.photoURL || null);
       setThemeColors({
         primary: data.theme?.primary || '',
         background: data.theme?.background || '',
         accent: data.theme?.accent || '',
       });
+    } else {
+      setProfilePic(user.photoURL || null);
     }
     setIsLoading(false);
   }, [user]);
@@ -255,6 +257,10 @@ export default function ProfilePage() {
     try {
         await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(storageRef);
+
+        if(imageType === 'profile' && auth.currentUser) {
+            await updateProfile(auth.currentUser, { photoURL: downloadURL });
+        }
 
         const prefKey = imageType === 'profile' ? 'photoURL' : 'backgroundURL';
         const userPrefRef = doc(db, 'userPreferences', user.uid);
@@ -503,7 +509,7 @@ export default function ProfilePage() {
                                 onChange={(e) => handleImageUpload(e, 'background')}
                                 accept="image/png, image/jpeg, image/gif"
                             />
-                           <Button size="sm" variant="outline" onClick={() => backgroundInputRef.current?.click()} disabled={isSubmitting}>
+                           <Button size="sm" variant="outline" onClick={() => backgroundInputru.current?.click()} disabled={isSubmitting}>
                                 {isSubmitting ? <Loader2 className="animate-spin" /> : 'Upload Background'}
                            </Button>
                       </div>
@@ -550,4 +556,6 @@ export default function ProfilePage() {
     </div>
   );
 }
+    
+
     
