@@ -11,8 +11,7 @@ import {
   SetStateAction,
 } from 'react';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { auth } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import type { User } from '@/lib/types';
 
@@ -34,16 +33,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // Fetch preferences to get the latest photoURL
-        const prefRef = doc(db, 'userPreferences', firebaseUser.uid);
-        const prefSnap = await getDoc(prefRef);
-        const photoURL = prefSnap.exists() ? prefSnap.data().photoURL : null;
-
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           displayName: firebaseUser.displayName,
-          photoURL: photoURL || firebaseUser.photoURL,
         });
       } else {
         setUser(null);

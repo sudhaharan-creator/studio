@@ -8,7 +8,6 @@ import { db, auth, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { updateProfile, sendPasswordResetEmail, deleteUser as deleteFirebaseUser } from 'firebase/auth';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -81,7 +80,6 @@ export default function ProfilePage() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState('');
-  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [userCourses, setUserCourses] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -96,7 +94,6 @@ export default function ProfilePage() {
   const [tempSelectedCourses, setTempSelectedCourses] = useState<string[]>([]);
   const [uniqueCourses, setUniqueCourses] = useState<string[]>([]);
 
-  const profilePicInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
 
@@ -131,14 +128,11 @@ export default function ProfilePage() {
       const savedCourses = data.courses || [];
       setUserCourses(savedCourses);
       setTempSelectedCourses(savedCourses);
-      setProfilePic(data.photoURL || user.photoURL || null);
       setThemeColors({
         primary: data.theme?.primary || '',
         background: data.theme?.background || '',
         accent: data.theme?.accent || '',
       });
-    } else {
-      setProfilePic(user.photoURL || null);
     }
     setIsLoading(false);
   }, [user]);
@@ -245,12 +239,10 @@ export default function ProfilePage() {
     }
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, imageType: 'profile' | 'background') => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!user || !event.target.files || event.target.files.length === 0) return;
     const file = event.target.files[0];
-    const storagePath = imageType === 'profile' 
-        ? `profileImages/${user.uid}/${file.name}`
-        : `backgroundImages/${user.uid}/${file.name}`;
+    const storagePath = `backgroundImages/${user.uid}/${file.name}`;
     const storageRef = ref(storage, storagePath);
 
     setIsSubmitting(true);
@@ -258,20 +250,11 @@ export default function ProfilePage() {
         await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(storageRef);
 
-        if(imageType === 'profile' && auth.currentUser) {
-            await updateProfile(auth.currentUser, { photoURL: downloadURL });
-        }
-
-        const prefKey = imageType === 'profile' ? 'photoURL' : 'backgroundURL';
+        const prefKey = 'backgroundURL';
         const userPrefRef = doc(db, 'userPreferences', user.uid);
         await setDoc(userPrefRef, { [prefKey]: downloadURL }, { merge: true });
         
-        if(imageType === 'profile') {
-            setProfilePic(downloadURL);
-            setUser({ ...user, photoURL: downloadURL }); // Update context
-        }
-        
-        toast({ title: 'Success', description: `${imageType === 'profile' ? 'Profile picture' : 'Background image'} updated.` });
+        toast({ title: 'Success', description: 'Background image updated.' });
         window.location.reload(); // Force reload to apply changes globally
     } catch (error) {
         console.error('Error uploading image:', error);
@@ -343,31 +326,6 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <div className="relative h-20 w-20">
-                        <Image
-                          src={profilePic || `https://avatar.vercel.sh/${user?.uid}.png`}
-                          alt="Profile Picture"
-                          width={80}
-                          height={80}
-                          className="rounded-full object-cover"
-                        />
-                      </div>
-                      <div className="space-y-2 text-center sm:text-left">
-                          <Label>Profile Picture</Label>
-                          <Input 
-                              type="file" 
-                              className="hidden"
-                              ref={profilePicInputRef}
-                              onChange={(e) => handleImageUpload(e, 'profile')}
-                              accept="image/png, image/jpeg, image/gif"
-                          />
-                          <Button size="sm" variant="outline" onClick={() => profilePicInputRef.current?.click()} disabled={isSubmitting}>
-                              {isSubmitting ? <Loader2 className="animate-spin" /> : 'Change Picture'}
-                          </Button>
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
                        <Label htmlFor="displayName">Profile Name</Label>
                        <Input
@@ -503,7 +461,7 @@ export default function ProfilePage() {
                               type="file" 
                               className="hidden"
                               ref={backgroundInputRef}
-                              onChange={(e) => handleImageUpload(e, 'background')}
+                              onChange={handleImageUpload}
                               accept="image/png, image/jpeg, image/gif"
                           />
                          <Button size="sm" variant="outline" onClick={() => backgroundInputRef.current?.click()} disabled={isSubmitting}>
