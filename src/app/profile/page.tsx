@@ -1,17 +1,19 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
-import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { updateProfile, sendPasswordResetEmail } from 'firebase/auth';
+import { db, auth, storage } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { updateProfile, sendPasswordResetEmail, deleteUser as deleteFirebaseUser } from 'firebase/auth';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { TimetableSkeleton } from '@/components/timetable-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, User as UserIcon, Settings, BookOpen, Palette, CheckIcon, KeyRound, XIcon } from 'lucide-react';
+import { Loader2, User as UserIcon, Settings, BookOpen, Palette, CheckIcon, KeyRound, XIcon, Trash2Icon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +21,17 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/context/app-context';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const colorPalettes = [
   {
@@ -68,6 +81,7 @@ export default function ProfilePage() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [displayName, setDisplayName] = useState('');
+  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [userCourses, setUserCourses] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -82,6 +96,10 @@ export default function ProfilePage() {
   const [tempSelectedCourses, setTempSelectedCourses] = useState<string[]>([]);
   const [uniqueCourses, setUniqueCourses] = useState<string[]>([]);
 
+  const profilePicInputRef = useRef<HTMLInputElement>(null);
+  const backgroundInputRef = useRef<HTMLInputElement>(null);
+
+
   useEffect(() => {
     if (sheetData) {
       const courses = new Set<string>();
@@ -89,9 +107,11 @@ export default function ProfilePage() {
         row.slice(2).forEach(cell => {
           const fullCourseText = cell.value.trim();
           if (fullCourseText && !/^\(Lunch\)$/i.test(fullCourseText) && !/Registration/i.test(fullCourseText) && !/^\s*$/.test(fullCourseText)) {
-            const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
+            const match = fullCourseText.match(/^(.*?)\s*(\d*)$/);
             const courseName = match ? match[1].trim() : fullCourseText;
-            courses.add(courseName);
+            if (courseName) {
+              courses.add(courseName);
+            }
           }
         });
       });
@@ -111,6 +131,7 @@ export default function ProfilePage() {
       const savedCourses = data.courses || [];
       setUserCourses(savedCourses);
       setTempSelectedCourses(savedCourses);
+      setProfilePic(data.photoURL || null);
       setThemeColors({
         primary: data.theme?.primary || '',
         background: data.theme?.background || '',
@@ -180,7 +201,6 @@ export default function ProfilePage() {
       const docRef = doc(db, 'userPreferences', user.uid);
       await setDoc(docRef, { theme: themeColors }, { merge: true });
       toast({ title: 'Success', description: 'Theme preferences saved!' });
-      // Optionally force a reload to see theme changes immediately
       window.location.reload();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to save theme.' });
@@ -223,6 +243,69 @@ export default function ProfilePage() {
     }
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, imageType: 'profile' | 'background') => {
+    if (!user || !event.target.files || event.target.files.length === 0) return;
+    const file = event.target.files[0];
+    const storagePath = imageType === 'profile' 
+        ? `profileImages/${user.uid}/${file.name}`
+        : `backgroundImages/${user.uid}/${file.name}`;
+    const storageRef = ref(storage, storagePath);
+
+    setIsSubmitting(true);
+    try {
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+
+        const prefKey = imageType === 'profile' ? 'photoURL' : 'backgroundURL';
+        const userPrefRef = doc(db, 'userPreferences', user.uid);
+        await setDoc(userPrefRef, { [prefKey]: downloadURL }, { merge: true });
+        
+        if(imageType === 'profile') {
+            setProfilePic(downloadURL);
+            setUser({ ...user, photoURL: downloadURL }); // Update context
+        }
+        
+        toast({ title: 'Success', description: `${imageType === 'profile' ? 'Profile picture' : 'Background image'} updated.` });
+        window.location.reload(); // Force reload to apply changes globally
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to upload image.' });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user || !auth.currentUser) return;
+    setIsSubmitting(true);
+    try {
+      // 1. Delete user preferences from Firestore
+      const userPrefRef = doc(db, 'userPreferences', user.uid);
+      await deleteDoc(userPrefRef);
+
+      // 2. Delete the user from Firebase Auth
+      await deleteFirebaseUser(auth.currentUser);
+
+      toast({
+        title: 'Account Deleted',
+        description: 'Your account has been permanently deleted.',
+      });
+      
+      // The onAuthStateChanged listener in auth-context will handle redirecting
+      // but we can push to be faster
+      router.push('/');
+
+    } catch (error) {
+       console.error('Error deleting account:', error);
+       toast({
+        variant: 'destructive',
+        title: 'Error Deleting Account',
+        description: 'An error occurred. You may need to sign in again to complete this action.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading || authLoading) {
     return (
@@ -257,6 +340,31 @@ export default function ProfilePage() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <div className="relative h-20 w-20">
+                          <Image
+                            src={profilePic || `https://avatar.vercel.sh/${user?.uid}.png`}
+                            alt="Profile Picture"
+                            width={80}
+                            height={80}
+                            className="rounded-full object-cover"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Profile Picture</Label>
+                            <Input 
+                                type="file" 
+                                className="hidden"
+                                ref={profilePicInputRef}
+                                onChange={(e) => handleImageUpload(e, 'profile')}
+                                accept="image/png, image/jpeg, image/gif"
+                            />
+                            <Button size="sm" variant="outline" onClick={() => profilePicInputRef.current?.click()} disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Change Picture'}
+                            </Button>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                          <Label htmlFor="displayName">Profile Name</Label>
                          <Input
@@ -281,6 +389,36 @@ export default function ProfilePage() {
                        <Button variant="outline" onClick={handlePasswordReset} disabled={isSubmitting}>
                          {isSubmitting ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2"/> Send Password Reset Email</>}
                        </Button>
+                    </div>
+                    <div className="space-y-4 pt-4 border-t border-destructive/50">
+                       <div className="space-y-2">
+                         <Label className="text-destructive">Danger Zone</Label>
+                         <CardDescription>
+                           Permanently delete your account and all associated data. This action is irreversible.
+                         </CardDescription>
+                       </div>
+                       <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" disabled={isSubmitting}>
+                              <Trash2Icon className="mr-2"/> Delete Account
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete your account
+                                and remove your data from our servers.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteAccount} className={cn(buttonVariants({variant: "destructive"}))}>
+                                {isSubmitting ? <Loader2 className="animate-spin" /> : "Yes, delete my account"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                   </CardContent>
                 </Card>
@@ -356,6 +494,19 @@ export default function ProfilePage() {
                     <CardDescription>Customize the look and feel of the application. Select a palette and save.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                     <div className="space-y-2">
+                          <Label>Background Image</Label>
+                           <Input 
+                                type="file" 
+                                className="hidden"
+                                ref={backgroundInputRef}
+                                onChange={(e) => handleImageUpload(e, 'background')}
+                                accept="image/png, image/jpeg, image/gif"
+                            />
+                           <Button size="sm" variant="outline" onClick={() => backgroundInputRef.current?.click()} disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Upload Background'}
+                           </Button>
+                      </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {colorPalettes.map((palette) => {
                         const isActive =
