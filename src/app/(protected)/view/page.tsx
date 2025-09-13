@@ -17,7 +17,7 @@ import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ViewPage() {
-  const { sheetData, setFilteredSheetData } = useAppContext();
+  const { sheetData, setFilteredSheetData, isSheetDataLoading } = useAppContext();
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
@@ -26,38 +26,40 @@ export default function ViewPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!sheetData) {
+    if (!isSheetDataLoading && !sheetData) {
       router.push('/');
       return;
     }
+    
+    if (sheetData) {
+        const courses = new Set<string>();
+        sheetData.slice(2).forEach(row => {
+          row.slice(2).forEach(cell => {
+            const fullCourseText = cell.value.trim();
+            if (fullCourseText && !/^\(Lunch\)$/i.test(fullCourseText) && !/Registration/i.test(fullCourseText) && !/^\s*$/.test(fullCourseText)) {
+              const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
+              const courseName = match ? match[1].trim() : fullCourseText;
+              courses.add(courseName);
+            }
+          });
+        });
+        setUniqueCourses(Array.from(courses).sort());
 
-    const courses = new Set<string>();
-    sheetData.slice(2).forEach(row => {
-      row.slice(2).forEach(cell => {
-        const fullCourseText = cell.value.trim();
-        if (fullCourseText && !/^\(Lunch\)$/i.test(fullCourseText) && !/Registration/i.test(fullCourseText) && !/^\s*$/.test(fullCourseText)) {
-          const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
-          const courseName = match ? match[1].trim() : fullCourseText;
-          courses.add(courseName);
-        }
-      });
-    });
-    setUniqueCourses(Array.from(courses).sort());
+        const fetchPreferences = async () => {
+          // Only fetch preferences for authenticated users
+          if (user) {
+            const docRef = doc(db, 'userPreferences', user.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists() && docSnap.data().courses) {
+              setSelectedCourses(docSnap.data().courses);
+            }
+          }
+          setIsLoading(false);
+        };
 
-    const fetchPreferences = async () => {
-      // Only fetch preferences for authenticated users
-      if (user) {
-        const docRef = doc(db, 'userPreferences', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().courses) {
-          setSelectedCourses(docSnap.data().courses);
-        }
-      }
-      setIsLoading(false);
-    };
-
-    fetchPreferences();
-  }, [sheetData, router, user]);
+        fetchPreferences();
+    }
+  }, [sheetData, router, user, isSheetDataLoading]);
 
   const handleCourseSelection = (course: string, checked: boolean) => {
     setSelectedCourses(prev =>
@@ -114,7 +116,7 @@ export default function ViewPage() {
     router.push('/view/timetable');
   };
 
-  if (isLoading || !sheetData) {
+  if (isLoading || isSheetDataLoading || !sheetData) {
     return (
       <div className="min-h-screen bg-background text-foreground font-body">
         <main className="container mx-auto p-4 sm:p-6 md:p-8">

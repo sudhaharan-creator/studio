@@ -134,14 +134,10 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/');
-        return;
-      }
-      fetchPreferences();
+    if (!authLoading && user) {
+        fetchPreferences();
     }
-  }, [authLoading, user, router, fetchPreferences]);
+  }, [authLoading, user, fetchPreferences]);
 
   const handleUpdateProfile = async () => {
     if (!user || !auth.currentUser) return;

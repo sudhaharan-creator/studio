@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -65,14 +66,10 @@ export default function AttendancePage() {
   }, [user]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/');
-      } else {
-        fetchAttendance();
-      }
+    if (!authLoading && user) {
+      fetchAttendance();
     }
-  }, [authLoading, user, router, fetchAttendance]);
+  }, [authLoading, user, fetchAttendance]);
   
   const courseNames = useMemo(() => Object.keys(attendanceMatrix).sort(), [attendanceMatrix]);
   const sessionHeaders = Array.from({ length: MAX_SESSIONS }, (_, i) => i + 1);

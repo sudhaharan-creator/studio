@@ -17,6 +17,7 @@ import type { User } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
+  unverifiedUser: User | null; // For logged-in but not verified users
   setUser: Dispatch<SetStateAction<User | null>>;
   loading: boolean;
   isAuthDialogOpen: boolean;
@@ -27,19 +28,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [unverifiedUser, setUnverifiedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthDialogOpen, setAuthDialogOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      setLoading(true);
       if (firebaseUser) {
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-        });
+        // Manually reload user state to get the latest emailVerified status
+        await firebaseUser.reload();
+        
+        const userData = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+        };
+
+        if (firebaseUser.emailVerified) {
+          setUser(userData);
+          setUnverifiedUser(null);
+        } else {
+          setUser(null);
+          setUnverifiedUser(userData);
+        }
       } else {
         setUser(null);
+        setUnverifiedUser(null);
       }
       setLoading(false);
     });
@@ -48,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const value = {
     user,
+    unverifiedUser,
     setUser,
     loading,
     isAuthDialogOpen,
@@ -56,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   if (loading) {
     return (
-       <div className="flex-1 flex items-center justify-center">
+       <div className="flex-1 flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )

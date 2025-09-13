@@ -53,7 +53,11 @@ export function AuthDialog() {
       setAuthDialogOpen(false);
       toast({ title: 'Success', description: 'Signed in successfully!' });
     } catch (err: any) {
-      setError(err.message);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError('Invalid email or password.');
+      } else {
+        setError(err.message);
+      }
     }
   };
 

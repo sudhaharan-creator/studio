@@ -18,9 +18,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export function SiteHeader() {
-  const { user, setAuthDialogOpen } = useAuth();
+  const { user, unverifiedUser, setAuthDialogOpen } = useAuth();
   const router = useRouter();
   const isMobile = useIsMobile();
+  
+  const loggedInUser = user || unverifiedUser;
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -54,7 +56,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            Welcome, {user!.displayName || user!.email}
+            Welcome, {loggedInUser!.displayName || loggedInUser!.email}
           </span>
         </div>
         <Button variant="ghost" onClick={handleLogout}>
@@ -75,7 +77,7 @@ export function SiteHeader() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>
-            {user!.displayName || user!.email}
+            {loggedInUser!.displayName || loggedInUser!.email}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
@@ -104,7 +106,7 @@ export function SiteHeader() {
           </Link>
         </div>
 
-        {user ? (
+        {loggedInUser ? (
           isMobile ? renderMobileNav() : renderDesktopNav()
         ) : (
           <div className="flex flex-1 items-center justify-end">
