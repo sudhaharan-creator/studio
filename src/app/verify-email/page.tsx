@@ -23,7 +23,7 @@ export default function VerifyEmailPage() {
     if (!loading) {
       if (user) {
         // User is verified, send them to the main view
-        router.replace('/view');
+        router.replace('/view/timetable');
       } else if (!unverifiedUser && !currentUser) {
         // No one is logged in at all, send to home
         router.replace('/');
