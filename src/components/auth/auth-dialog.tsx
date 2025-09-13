@@ -16,6 +16,7 @@ import { useAuth } from '@/context/auth-context';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendEmailVerification,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -32,9 +33,13 @@ export function AuthDialog() {
     e.preventDefault();
     setError(null);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      await sendEmailVerification(userCredential.user);
       setAuthDialogOpen(false);
-      toast({ title: 'Success', description: 'Account created successfully!' });
+      toast({
+        title: 'Verification Email Sent',
+        description: 'Your account has been created. Please check your email to verify your account.',
+      });
     } catch (err: any) {
       setError(err.message);
     }
