@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ export function AuthDialog() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,8 @@ export function AuthDialog() {
         title: 'Verification Email Sent',
         description: 'Your account has been created. Please check your email to verify your account.',
       });
+      // Redirect to verification page
+      router.push('/verify-email');
     } catch (err: any) {
       setError(err.message);
     }
