@@ -18,6 +18,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -59,11 +60,31 @@ export function AuthDialog() {
     } catch (err: any) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setError('Invalid email or password.');
+      } else if (err.code === 'auth/invalid-credential') {
+        setError('Invalid email or password.');
       } else {
         setError(err.message);
       }
     }
   };
+  
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setError('Please enter your email address to reset your password.');
+      return;
+    }
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: 'Password Reset Email Sent',
+        description: 'Check your inbox for a link to reset your password.',
+      });
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
+
 
   return (
     <Dialog open={isAuthDialogOpen} onOpenChange={setAuthDialogOpen}>
@@ -93,7 +114,12 @@ export function AuthDialog() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password-signin">Password</Label>
+                 <div className="flex items-center justify-between">
+                    <Label htmlFor="password-signin">Password</Label>
+                    <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={handlePasswordReset}>
+                      Forgot password?
+                    </Button>
+                  </div>
                 <Input
                   id="password-signin"
                   type="password"

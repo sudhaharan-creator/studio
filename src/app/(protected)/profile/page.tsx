@@ -81,6 +81,7 @@ export default function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [userCourses, setUserCourses] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasswordResetting, setIsPasswordResetting] = useState(false);
   
   const [themeColors, setThemeColors] = useState({
     primary: '',
@@ -156,7 +157,7 @@ export default function ProfilePage() {
   
   const handlePasswordReset = async () => {
     if (!user?.email) return;
-    setIsSubmitting(true);
+    setIsPasswordResetting(true);
     try {
       await sendPasswordResetEmail(auth, user.email);
       toast({
@@ -170,7 +171,7 @@ export default function ProfilePage() {
         description: 'Failed to send password reset email.',
       });
     } finally {
-      setIsSubmitting(false);
+      setIsPasswordResetting(false);
     }
   };
   
@@ -314,8 +315,8 @@ export default function ProfilePage() {
                          Click the button below to receive an email to reset your password.
                        </CardDescription>
                      </div>
-                     <Button variant="outline" onClick={handlePasswordReset} disabled={isSubmitting}>
-                       {isSubmitting ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2"/> Send Password Reset Email</>}
+                     <Button variant="outline" onClick={handlePasswordReset} disabled={isPasswordResetting}>
+                       {isPasswordResetting ? <Loader2 className="animate-spin" /> : <><KeyRound className="mr-2"/> Send Password Reset Email</>}
                      </Button>
                   </div>
                   <div className="space-y-4 pt-4 border-t border-destructive/50">
