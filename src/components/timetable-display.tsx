@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import type { SheetData, CellStyle, AttendanceStatus } from '@/lib/types';
+import type { SheetData, CellStyle, AttendanceStatus, CellData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { Button } from './ui/button';
@@ -122,12 +122,44 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
     }
   };
   
+  const processedBodyRows = useMemo(() => {
+    if (!data || data.length < 3) return [];
+
+    const body = JSON.parse(JSON.stringify(data.slice(2))) as CellData[][]; // Deep copy
+    let i = 0;
+    while (i < body.length) {
+      let count = 1;
+      let currentDate = body[i][0]?.value;
+      
+      // Don't merge empty/undefined date cells
+      if (!currentDate) {
+        i++;
+        continue;
+      }
+      
+      let j = i + 1;
+      while (j < body.length && body[j][0]?.value === currentDate) {
+        count++;
+        j++;
+      }
+      
+      if (count > 1) {
+        body[i][0].rowSpan = count;
+        for (let k = 1; k < count; k++) {
+          // Mark for removal
+          body[i+k][0].rowSpan = 0;
+        }
+      }
+      i += count;
+    }
+    return body;
+  }, [data]);
+  
   if (!data || data.length === 0) {
     return null;
   }
   
   const headerRows = data.slice(0, 2);
-  const bodyRows = data.slice(2);
   
   return (
     <Card
@@ -160,11 +192,14 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
               ))}
             </TableHeader>
             <TableBody>
-              {bodyRows.map((row, rowIndex) => {
-                const date = row[0]?.value;
+              {processedBodyRows.map((row, rowIndex) => {
+                const date = row.find(cell => cell.rowSpan !== 0)?.[0]?.value || processedBodyRows[rowIndex]?.[0]?.value;
                 return (
                 <TableRow key={rowIndex} className="transition-colors">
                   {row.map((cell, cellIndex) => {
+                    // Skip rendering cells that are spanned over
+                    if (cell.rowSpan === 0) return null;
+
                     const { className, style, colSpan, rowSpan } = getCellProps(cell);
                     
                     if (user && cellIndex > 1 && cell.value.trim() !== '') {
@@ -190,7 +225,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                       const courseName = match[1].trim();
                       const sessionNumber = parseInt(match[2], 10);
                       
-                      if (!courseName || isNaN(sessionNumber)) {
+                      if (!courseName || isNaN(sessionNumber) || !date || !time) {
                         return (
                           <TableCell
                             key={cellIndex}
@@ -210,31 +245,33 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                       return (
                         <TableCell
                           key={cellIndex}
-                          className={cn('text-center align-middle', className)}
+                          className={cn('text-center align-middle', className, rowSpan && rowSpan > 1 ? 'align-top pt-4' : '')}
                           style={style}
                           colSpan={colSpan}
                           rowSpan={rowSpan}
                         >
                           <div className='flex flex-col items-center gap-2'>
                             <span>{cell.value}</span>
-                            <div className='flex gap-1'>
-                              <Button
-                                size="sm"
-                                variant={currentStatus === 'present' ? 'default' : 'outline'}
-                                onClick={() => handleAttendance(sessionId, date, time, courseName, sessionNumber, 'present')}
-                                className='h-6 px-2 text-xs'
-                              >
-                                P
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant={currentStatus === 'absent' ? 'destructive' : 'outline'}
-                                onClick={() => handleAttendance(sessionId, date, time, courseName, sessionNumber, 'absent')}
-                                className='h-6 px-2 text-xs'
-                              >
-                                A
-                              </Button>
-                            </div>
+                            {cellIndex > 1 && (
+                              <div className='flex gap-1'>
+                                <Button
+                                  size="sm"
+                                  variant={currentStatus === 'present' ? 'default' : 'outline'}
+                                  onClick={() => handleAttendance(sessionId, date, time, courseName, sessionNumber, 'present')}
+                                  className='h-6 px-2 text-xs'
+                                >
+                                  P
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={currentStatus === 'absent' ? 'destructive' : 'outline'}
+                                  onClick={() => handleAttendance(sessionId, date, time, courseName, sessionNumber, 'absent')}
+                                  className='h-6 px-2 text-xs'
+                                >
+                                  A
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                       );
@@ -243,7 +280,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                     return (
                       <TableCell
                         key={cellIndex}
-                        className={cn('text-center align-middle', className)}
+                        className={cn('text-center align-middle', className, rowSpan && rowSpan > 1 ? 'align-top pt-4' : '')}
                         style={style}
                         colSpan={colSpan}
                         rowSpan={rowSpan}
