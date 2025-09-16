@@ -76,8 +76,10 @@ export default function Home() {
           setIsUrlLocked(true);
         }
         
-        // Navigate AFTER setting data
-        router.push('/view');
+        toast({
+          title: 'Success!',
+          description: 'Timetable data synced. You can now view the timetable.',
+        });
         
       } else {
         toast({
@@ -85,7 +87,6 @@ export default function Home() {
           title: 'Error',
           description: 'No data found in the sheet.',
         });
-        setIsLoading(false);
       }
     } catch (err: any) {
       console.error(err);
@@ -94,8 +95,9 @@ export default function Home() {
         title: 'Error Fetching Data',
         description: err.message || 'An unexpected error occurred.',
       });
-      setIsLoading(false);
-    } 
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleRemoveUrl = async () => {
