@@ -52,14 +52,6 @@ export default function Home() {
     }
   }, [user, authLoading]);
   
-  useEffect(() => {
-    // This effect will run when sheetData is updated.
-    // It ensures navigation happens only after the state is set.
-    if (sheetData && isLoading) {
-      router.push('/view');
-    }
-  }, [sheetData, isLoading, router]);
-
   const handleFetchData = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!sheetUrl.trim().startsWith('https://docs.google.com/spreadsheets/d/')) {
@@ -75,7 +67,6 @@ export default function Home() {
     try {
       const result: GetSheetDataOutput = await getSheetData({ sheetUrl });
       if (result.sheetData) {
-        // This will trigger the useEffect to navigate
         setSheetData(result.sheetData);
 
         // Only save preferences if the user is authenticated
@@ -84,6 +75,9 @@ export default function Home() {
           await setDoc(docRef, { sheetUrl: sheetUrl }, { merge: true });
           setIsUrlLocked(true);
         }
+        
+        // Navigate AFTER setting data
+        router.push('/view');
         
       } else {
         toast({
@@ -102,7 +96,6 @@ export default function Home() {
       });
       setIsLoading(false);
     } 
-    // No finally block, isLoading will be reset by effect or error
   };
 
   const handleRemoveUrl = async () => {

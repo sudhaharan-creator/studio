@@ -31,7 +31,7 @@ export default function ViewPage() {
     }
 
     if (!sheetData) {
-      router.push('/');
+      router.replace('/');
       return;
     }
     
@@ -122,7 +122,7 @@ export default function ViewPage() {
     router.push('/view/timetable');
   };
 
-  if (isLoading || isSheetDataLoading || !sheetData) {
+  if (isLoading || isSheetDataLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground font-body">
         <main className="container mx-auto p-4 sm:p-6 md:p-8">
