@@ -245,7 +245,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                       return (
                         <TableCell
                           key={cellIndex}
-                          className={cn('text-center align-middle', className, rowSpan && rowSpan > 1 ? 'align-top pt-4' : '')}
+                          className={cn('text-center', className, rowSpan && rowSpan > 1 ? 'align-middle' : 'align-middle')}
                           style={style}
                           colSpan={colSpan}
                           rowSpan={rowSpan}
@@ -280,7 +280,7 @@ export function TimetableDisplay({ data }: TimetableDisplayProps) {
                     return (
                       <TableCell
                         key={cellIndex}
-                        className={cn('text-center align-middle', className, rowSpan && rowSpan > 1 ? 'align-top pt-4' : '')}
+                        className={cn('text-center', className, rowSpan && rowSpan > 1 ? 'align-middle' : 'align-middle')}
                         style={style}
                         colSpan={colSpan}
                         rowSpan={rowSpan}
