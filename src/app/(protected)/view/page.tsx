@@ -26,46 +26,47 @@ export default function ViewPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Wait until the initial data loading process is complete.
     if (isSheetDataLoading) {
       return;
     }
 
+    // If loading is done and there's still no data, redirect to homepage.
     if (!sheetData) {
       router.replace('/');
       return;
     }
     
-    if (sheetData) {
-        const courses = new Set<string>();
-        sheetData.slice(2).forEach(row => {
-          row.slice(2).forEach(cell => {
-            const fullCourseText = cell.value.trim();
-            if (fullCourseText && !/^\(Lunch\)$/i.test(fullCourseText) && !/Registration/i.test(fullCourseText) && !/^\s*$/.test(fullCourseText)) {
-              const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
-              const courseName = match ? match[1].trim() : fullCourseText;
-              if (courseName) {
-                courses.add(courseName);
-              }
-            }
-          });
-        });
-        setUniqueCourses(Array.from(courses).sort());
-
-        const fetchPreferences = async () => {
-          // Only fetch preferences for authenticated users
-          if (user) {
-            const docRef = doc(db, 'userPreferences', user.uid);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists() && docSnap.data().courses) {
-              setSelectedCourses(docSnap.data().courses);
-            }
+    // If we have data, proceed with setting up the component.
+    const courses = new Set<string>();
+    sheetData.slice(2).forEach(row => {
+      row.slice(2).forEach(cell => {
+        const fullCourseText = cell.value.trim();
+        if (fullCourseText && !/^\(Lunch\)$/i.test(fullCourseText) && !/Registration/i.test(fullCourseText) && !/^\s*$/.test(fullCourseText)) {
+          const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
+          const courseName = match ? match[1].trim() : fullCourseText;
+          if (courseName) {
+            courses.add(courseName);
           }
-          setIsLoading(false);
-        };
+        }
+      });
+    });
+    setUniqueCourses(Array.from(courses).sort());
 
-        fetchPreferences();
-    }
-  }, [sheetData, router, user, isSheetDataLoading]);
+    const fetchPreferences = async () => {
+      // Only fetch preferences for authenticated users
+      if (user) {
+        const docRef = doc(db, 'userPreferences', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().courses) {
+          setSelectedCourses(docSnap.data().courses);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    fetchPreferences();
+  }, [sheetData, isSheetDataLoading, router, user]);
 
   const handleCourseSelection = (course: string, checked: boolean) => {
     setSelectedCourses(prev =>
