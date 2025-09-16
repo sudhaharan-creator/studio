@@ -21,7 +21,7 @@ export default function Home() {
   const [isFetchingPrefs, setIsFetchingPrefs] = useState(true);
   const [isUrlLocked, setIsUrlLocked] = useState(false);
   const { toast } = useToast();
-  const { setSheetData } = useAppContext();
+  const { setSheetData, sheetData } = useAppContext();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -51,6 +51,14 @@ export default function Home() {
       fetchUserSheetUrl();
     }
   }, [user, authLoading]);
+  
+  useEffect(() => {
+    // This effect will run when sheetData is updated.
+    // It ensures navigation happens only after the state is set.
+    if (sheetData && isLoading) {
+      router.push('/view');
+    }
+  }, [sheetData, isLoading, router]);
 
   const handleFetchData = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -67,6 +75,7 @@ export default function Home() {
     try {
       const result: GetSheetDataOutput = await getSheetData({ sheetUrl });
       if (result.sheetData) {
+        // This will trigger the useEffect to navigate
         setSheetData(result.sheetData);
 
         // Only save preferences if the user is authenticated
@@ -75,14 +84,14 @@ export default function Home() {
           await setDoc(docRef, { sheetUrl: sheetUrl }, { merge: true });
           setIsUrlLocked(true);
         }
-
-        router.push('/view');
+        
       } else {
         toast({
           variant: 'destructive',
           title: 'Error',
           description: 'No data found in the sheet.',
         });
+        setIsLoading(false);
       }
     } catch (err: any) {
       console.error(err);
@@ -91,9 +100,9 @@ export default function Home() {
         title: 'Error Fetching Data',
         description: err.message || 'An unexpected error occurred.',
       });
-    } finally {
       setIsLoading(false);
-    }
+    } 
+    // No finally block, isLoading will be reset by effect or error
   };
 
   const handleRemoveUrl = async () => {

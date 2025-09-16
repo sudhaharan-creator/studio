@@ -43,19 +43,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
         setIsSheetDataLoading(false);
       } else {
-        setSheetData(null);
+        // For guest users, don't automatically fetch.
+        // Data will be provided from the homepage.
         setIsSheetDataLoading(false);
       }
     };
     
-    // Check if auth is done loading
     if (!authLoading) {
-      // If there is no sheetData already, fetch it.
-      if (!sheetData) {
+      // Only fetch if there is a user and no data is already present.
+      if (user && !sheetData) {
         fetchInitialData();
       } else {
-         // If there is sheet data, we are not loading.
-         setIsSheetDataLoading(false);
+        setIsSheetDataLoading(false);
       }
     }
   }, [user, authLoading, sheetData]);
@@ -75,5 +74,3 @@ export const useAppContext = () => {
   }
   return context;
 };
-
-    

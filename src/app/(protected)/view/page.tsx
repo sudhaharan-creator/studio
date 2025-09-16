@@ -26,7 +26,11 @@ export default function ViewPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isSheetDataLoading && !sheetData) {
+    if (isSheetDataLoading) {
+      return;
+    }
+
+    if (!sheetData) {
       router.push('/');
       return;
     }
@@ -39,7 +43,9 @@ export default function ViewPage() {
             if (fullCourseText && !/^\(Lunch\)$/i.test(fullCourseText) && !/Registration/i.test(fullCourseText) && !/^\s*$/.test(fullCourseText)) {
               const match = fullCourseText.match(/^(.*?)\s*(\d+)$/);
               const courseName = match ? match[1].trim() : fullCourseText;
-              courses.add(courseName);
+              if (courseName) {
+                courses.add(courseName);
+              }
             }
           });
         });
